@@ -4,26 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<title>developer</title>
+<title>{{site.title}}</title>
 <!-- link preview tags: the address in the lines marked * is the site address -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="Dhanush Garhwal | Portfolio">
-<meta property="og:url" content="https://dhanushgarhwal.vercel.app/"> <!-- * -->
-<meta property="og:image" content="https://dhanushgarhwal.vercel.app/image/og.png"> <!-- * -->
+<meta property="og:title" content="{{site.ogTitle}}">
+<meta property="og:url" content="{{site.url}}/"> <!-- * -->
+<meta property="og:image" content="{{site.url}}{{images.og}}"> <!-- * -->
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Dhanush Garhwal - Portfolio">
+<meta property="og:image:alt" content="{{site.ogImageAlt}}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Dhanush Garhwal | Portfolio">
-<meta name="twitter:image" content="https://dhanushgarhwal.vercel.app/image/og.png"> <!-- * -->
-<link rel="canonical" href="https://dhanushgarhwal.vercel.app/"> <!-- * -->
+<meta name="twitter:title" content="{{site.ogTitle}}">
+<meta name="twitter:image" content="{{site.url}}{{images.og}}"> <!-- * -->
+<link rel="canonical" href="{{site.url}}/"> <!-- * -->
 <style>html{background:#000}</style>
 <!-- before first paint: decides the entrance. No "intro-at" stamp (localStorage, or the cookie as backup) from the last hour -> the entrance plays (html.is-intro). Otherwise it is skipped and the page fades in from black once fonts and pictures are ready (html.soft, then script.js adds "lit"; released after 4 s at the latest). -->
 <script>(d=>{const K="intro-at",now=Date.now();let t=0;try{t=+localStorage.getItem(K)||0}catch{}if(!t){const m=d.ownerDocument.cookie.match(/(?:^|; )intro-at=(\d+)/);t=m?+m[1]:0}const seen=t>0&&t<=now+6e4&&now-t<36e5;d.classList.add("js",seen?"soft":"is-intro");setTimeout(()=>d.classList.add("lit"),4e3);if(!seen)setTimeout(()=>d.classList.remove("is-intro"),12e3)})(document.documentElement)</script>
-<link rel="icon" type="image/png" href="/image/favicon.png">
-<link rel="apple-touch-icon" href="/image/favicon.png">
-<link rel="preload" as="image" href="/image/favicon-sm.png">
-<link rel="preload" as="image" href="/image/portfolio.webp" type="image/webp">
+<link rel="icon" type="image/png" href="{{images.favicon}}">
+<link rel="apple-touch-icon" href="{{images.favicon}}">
+<link rel="preload" as="image" href="{{images.faviconSmall}}">
+{{{preloadProject}}}
 <link rel="preload" as="font" type="font/woff2" href="/font/poppins-600.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="/font/poppins-500.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="/font/poppins-400.woff2" crossorigin>
@@ -31,11 +31,11 @@
 <link rel="preload" as="font" type="font/woff2" href="/font/poppins-700.woff2" crossorigin>
 <link rel="preconnect" href="https://api.lanyard.rest" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="stylesheet" href="/state.css?v=5b598cf5c0">
-<link rel="stylesheet" href="/style.css?v=f7605a8897">
-<link rel="stylesheet" href="/feedback.css?v=140b4e8754">
+<link rel="stylesheet" href="/state.css">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/feedback.css">
 </head>
-<body data-email="dhanushgarhwal@gmail.com" data-discord="1516421354713513995">
+<body>
 <div class="bg"></div>
 <div class="vig"></div>
 <div class="tex"></div>
@@ -72,7 +72,7 @@
 
 <!-- entrance cover, shown while fonts and pictures load -->
 <div class="intro" id="intro" aria-hidden="true">
-  <div class="intro-word" id="introWord"><span class="intro-clip"><span class="intro-text">developer<i class="intro-dot" id="introDot"></i></span></span></div>
+  <div class="intro-word" id="introWord"><span class="intro-clip"><span class="intro-text">{{texts.intro}}<i class="intro-dot" id="introDot"></i></span></span></div>
 </div>
 
 <nav class="nav fx" id="nav" aria-label="Primary"><ul>
@@ -92,66 +92,41 @@
 <div class="page">
   <main class="wrap view on" data-page="home">
     <header class="hero in" style="--i:0">
-      <p class="hey"><img class="fav" src="/image/favicon-sm.png" alt="" width="14" height="14">hey there</p>
-      <h1>Dhanush Garhwal</h1>
-      <p class="handle"><span><span class="at">@</span>dhanushgarhwal</span></p>
+      <p class="hey"><img class="fav" src="{{images.faviconSmall}}" alt="" width="14" height="14">{{texts.home.hey}}</p>
+      <h1>{{texts.home.title}}</h1>
+      <p class="handle"><span><span class="at">@</span>{{texts.home.handle}}</span></p>
     </header>
 
     <div class="card in" style="--i:1">
       <i class="hl"></i>
-      <p>I'm an <span class="hi">18 yr developer</span> figuring life out, and I love building any cool project that comes to my mind. Open to all opportunities, reach me fastest on <a class="hi" href="https://discord.com/users/1516421354713513995" target="_blank" rel="noopener noreferrer">discord</a>.</p>
+      <p>{{{about}}}</p>
     </div>
 
-    <div class="links in" style="--i:2">
-      <a class="chip" href="https://github.com/dhanushgarhwal" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg><span>GitHub</span></a>
-      <a class="chip" href="https://www.linkedin.com/in/dhanush-garhwal-a6a6a8441" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><svg aria-hidden="true"><use href="#i-linkedin"/></svg><span>LinkedIn</span></a>
-      <a class="chip" href="https://x.com/dhanushgarhwal" target="_blank" rel="noopener noreferrer" aria-label="X"><svg aria-hidden="true"><use href="#i-x"/></svg><span>X</span></a>
-      <a class="chip" href="https://www.instagram.com/dhanushgarhwal" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg aria-hidden="true"><use href="#i-instagram"/></svg><span>Instagram</span></a>
-      <a class="chip" href="https://discord.com/users/1516421354713513995" target="_blank" rel="noopener noreferrer" aria-label="Discord"><svg aria-hidden="true"><use href="#i-discord"/></svg><span>Discord</span></a>
-      <a class="chip" data-mail href="https://mail.google.com/" target="_blank" rel="noopener noreferrer" aria-label="Email"><svg aria-hidden="true"><use href="#i-mail"/></svg><span>Email</span></a>
-    </div>
+    {{{links}}}
   </main>
 
   <main class="wrap view" data-page="projects">
     <header class="hero in" style="--i:0">
-      <p class="hey"><img class="fav" src="/image/favicon-sm.png" alt="" width="14" height="14">work</p>
-      <h1>Projects</h1>
+      <p class="hey"><img class="fav" src="{{images.faviconSmall}}" alt="" width="14" height="14">{{texts.projects.hey}}</p>
+      <h1>{{texts.projects.title}}</h1>
     </header>
 
     <!-- projects: one <article class="card slide"> per project -->
     <div class="deck in" id="deck" style="--i:1" role="region" aria-roledescription="carousel" aria-label="Projects">
-    <article class="card slide" aria-label="portfolio">
-      <i class="hl"></i>
-        <a class="shot" href="https://dhanushgarhwal.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="Open portfolio"><img src="/image/portfolio.webp" alt="" width="1080" height="567" decoding="async" draggable="false"></a>      <div class="info">
-        <h2><span class="pi">P<img src="/image/favicon-sm.png" alt="" width="18" height="18" decoding="async" draggable="false"></span>portfolio</h2>
-        <p>this website. my portfolio built from scratch in html, css and javascript, with a live discord status and a view counter.</p>
-        <div class="foot"><a class="chip" href="https://github.com/dhanushgarhwal/portfolio" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true"><use href="#i-github"/></svg><span>source code</span></a></div>
-      </div>
-    </article>
+{{{projects}}}
     </div>
   </main>
 
   <main class="wrap view" data-page="skills">
     <header class="hero in" style="--i:0">
-      <p class="hey"><img class="fav" src="/image/favicon-sm.png" alt="" width="14" height="14">stack</p>
-      <h1>Skills</h1>
+      <p class="hey"><img class="fav" src="{{images.faviconSmall}}" alt="" width="14" height="14">{{texts.skills.hey}}</p>
+      <h1>{{texts.skills.title}}</h1>
     </header>
 
     <!-- skills: one <article class="card tile"> per skill, in the order set in the admin; the first one is selected on open -->
     <div class="strip in" style="--i:1">
       <div class="track" id="strip" role="region" aria-roledescription="carousel" aria-label="Skills">
-      <article class="card tile" style="--c:#e44d26" aria-label="HTML"><i class="hl"></i><span class="art"><b class="ltr">H</b><img src="/image/skill/html5.svg" data-cdn="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/html5/html5-original.svg" alt="" width="52" height="52" decoding="async" draggable="false"></span><h3>HTML</h3></article>
-      <article class="card tile" style="--c:#1572b6" aria-label="CSS"><i class="hl"></i><span class="art"><b class="ltr">C</b><img src="/image/skill/css3.svg" data-cdn="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/css3/css3-original.svg" alt="" width="52" height="52" decoding="async" draggable="false"></span><h3>CSS</h3></article>
-      <article class="card tile" style="--c:#f7df1e" aria-label="JavaScript"><i class="hl"></i><span class="art"><b class="ltr">JS</b><img src="/image/skill/javascript.svg" data-cdn="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/javascript/javascript-original.svg" alt="" width="52" height="52" decoding="async" draggable="false"></span><h3>JavaScript</h3></article>
-      <article class="card tile" style="--c:#3776ab" aria-label="Python"><i class="hl"></i><span class="art"><b class="ltr">PY</b><img src="/image/skill/python.svg" data-cdn="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/python/python-original.svg" alt="" width="52" height="52" decoding="async" draggable="false"></span><h3>Python</h3></article>
-      <article class="card tile" style="--c:#23a9f2" aria-label="VS Code"><i class="hl"></i><span class="art"><b class="ltr">VS</b><img src="/image/skill/vscode.svg" data-cdn="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/vscode/vscode-original.svg" alt="" width="52" height="52" decoding="async" draggable="false"></span><h3>VS Code</h3></article>
-      <article class="card tile" style="--c:#f05032" aria-label="Git"><i class="hl"></i><span class="art"><b class="ltr">G</b><img src="/image/skill/git.svg" data-cdn="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/git/git-original.svg" alt="" width="52" height="52" decoding="async" draggable="false"></span><h3>Git</h3></article>
-      <article class="card tile" style="--c:#c1c5ce" aria-label="GitHub"><i class="hl"></i><span class="art"><svg aria-hidden="true"><use href="#i-github"/></svg></span><h3>GitHub</h3></article>
-      <article class="card tile" style="--c:#f38020" aria-label="Cloudflare"><i class="hl"></i><span class="art"><b class="ltr">CF</b><img src="/image/skill/cloudflare.svg" data-cdn="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/cloudflare/cloudflare-original.svg" alt="" width="52" height="52" decoding="async" draggable="false"></span><h3>Cloudflare</h3></article>
-      <article class="card tile" style="--c:#ffca28" aria-label="Firestore"><i class="hl"></i><span class="art"><svg aria-hidden="true"><use href="#i-firestore"/></svg></span><h3>Firestore</h3></article>
-      <article class="card tile" style="--c:#c1c5ce" aria-label="Vercel"><i class="hl"></i><span class="art"><svg aria-hidden="true"><use href="#i-vercel"/></svg></span><h3>Vercel</h3></article>
-      <article class="card tile" style="--c:#a51c30" aria-label="CS50x"><i class="hl"></i><span class="art"><b class="ltr keep">50X</b></span><h3>CS50x</h3></article>
-      <article class="card tile" style="--c:#a51c30" aria-label="CS50P"><i class="hl"></i><span class="art"><b class="ltr keep">50P</b></span><h3>CS50P</h3></article>
+{{{tiles}}}
       </div>
     </div>
   </main>
@@ -159,8 +134,8 @@
   <!-- feedback: anonymous stars + message; public/feedback.js starts it the first time this page opens -->
   <main class="wrap view" data-page="feedback">
     <header class="hero in" style="--i:0">
-      <p class="hey"><img class="fav" src="/image/favicon-sm.png" alt="" width="14" height="14">your thoughts</p>
-      <h1>Feedback</h1>
+      <p class="hey"><img class="fav" src="{{images.faviconSmall}}" alt="" width="14" height="14">{{texts.feedback.hey}}</p>
+      <h1>{{texts.feedback.title}}</h1>
     </header>
 
     <form class="card fb-card" id="fb" novalidate>
@@ -173,24 +148,24 @@
           <button class="fb-star" type="button" role="radio" aria-checked="false" aria-label="4 of 5" tabindex="-1"><svg aria-hidden="true"><use href="#i-star"/></svg></button>
           <button class="fb-star" type="button" role="radio" aria-checked="false" aria-label="5 of 5" tabindex="-1"><svg aria-hidden="true"><use href="#i-star"/></svg></button>
         </div>
-        <div class="fb-field"><textarea id="fbText" name="message" rows="4" maxlength="1000" aria-label="don't overthink, it's anonymous" autocomplete="off"></textarea><span class="fb-ph" id="fbPh" aria-hidden="true" data-text="don't overthink, it's anonymous">don't overthink, it's anonymous</span></div>
+        <div class="fb-field"><textarea id="fbText" name="message" rows="4" maxlength="1000" aria-label="{{texts.feedback.placeholder}}" autocomplete="off"></textarea><span class="fb-ph" id="fbPh" aria-hidden="true" data-text="{{texts.feedback.placeholder}}">{{texts.feedback.placeholder}}</span></div>
         <!-- spam trap: people never see or fill this, bots do -->
         <div class="fb-hp" aria-hidden="true"><input type="text" id="fbHp" name="website" tabindex="-1" autocomplete="off"></div>
         <div class="fb-row">
           <p class="fb-msg" id="fbMsg" role="status" aria-live="polite"></p>
           <span class="fb-count" id="fbCount" hidden></span>
-          <button class="btn" id="fbSend" type="submit" disabled data-send="send" data-blocked="limit reached">send</button>
+          <button class="btn" id="fbSend" type="submit" disabled data-send="{{texts.feedback.send}}" data-blocked="{{texts.feedback.blocked}}">{{texts.feedback.send}}</button>
         </div>
       </div>
       <div class="fb-done" id="fbDone" inert aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-        <p>thank you</p>
+        <p>{{texts.feedback.thanks}}</p>
       </div>
     </form>
   </main>
 </div>
 
-<p class="upd fx"><span class="lu">last </span>updated <b>oct 2026</b></p>
+<p class="upd fx"><span class="lu">last </span>updated <b>{{texts.updated}}</b></p>
 <div class="views fx" id="views" aria-label="Total views">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
   <b id="vcount">–</b> <span>views</span>
@@ -230,8 +205,8 @@
     </div>
   </div>
 </div>
-<script src="/fonts.js?v=4723837732" defer></script>
-<script src="/script.js?v=d17601e6be" defer></script>
-<script src="/feedback.js?v=6df45b071b" defer></script>
+<script src="/fonts.js" defer></script>
+<script src="/script.js" defer></script>
+<script src="/feedback.js" defer></script>
 </body>
 </html>

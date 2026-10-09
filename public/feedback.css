@@ -1,0 +1,62 @@
+/* Feedback section of the main page. Reuses the site's own pieces (style.css: hero, card; state.css: .btn and the panel colours). */
+
+/* The form and the "thank you" share one grid cell, so the card keeps its exact size when the thank-you replaces the form. */
+.fb-card{display:grid}
+.fb-body,.fb-done{grid-area:1/1} /* no fade, no slide: the form and the thank-you swap instantly */
+.fb-body{display:grid;gap:14px;min-width:0}
+.fb-card.is-sent .fb-body{opacity:0;visibility:hidden} /* the form is there from the first paint (the send button stays off until the server has answered); only "sent" swaps it for the thank-you */
+
+/* stars: the colour follows the rating (set on #fbStars as data-level, also while hovering) */
+.fb-stars{--c:#f1f3f7;display:flex;gap:2px;margin:-6px 0 0 -6px}
+.fb-stars[data-level="1"]{--c:#ed4245}
+.fb-stars[data-level="2"]{--c:#f27d3a}
+.fb-stars[data-level="3"]{--c:#faa81a}
+.fb-stars[data-level="4"]{--c:#8fcf4a}
+.fb-stars[data-level="5"]{--c:#3ba55d}
+.fb-star{display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:var(--r);background:none;cursor:pointer;
+  color:rgba(193,197,206,.3);transition:color .15s,transform .15s,background-color .15s}
+.fb-star svg{width:22px;height:22px;pointer-events:none;transition:filter .15s}
+.fb-star.on{color:var(--c);--sf:currentColor}
+.fb-star.on svg{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--c) 40%,transparent))}
+@media(hover:hover){.fb-star:not(:disabled):hover{transform:translateY(-1px)}}
+.fb-star:active{transform:translateY(0)}
+.fb-star:disabled{cursor:not-allowed}
+
+.fb-field{position:relative;min-width:0}
+/* message box: fixed size, scrolls with the wheel, touch and keys, but never shows a scrollbar */
+.fb-card textarea{display:block;width:100%;height:96px;resize:none;padding:10px 12px;border:0;border-radius:var(--r);
+  background:#040405;color:var(--fg);font:400 12.5px/1.65 "Poppins",system-ui,sans-serif;caret-color:var(--fg);
+  box-shadow:inset 0 0 0 1px rgba(193,197,206,.08),inset 0 2px 8px rgba(0,0,0,.55);transition:box-shadow .15s;
+  -webkit-user-select:text;user-select:text;cursor:text;
+  overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}
+.fb-card textarea::-webkit-scrollbar{display:none;width:0;height:0}
+/* the hint is a plain element, not a real placeholder, so it can never be selected or dragged; it hides as soon as there is text */
+.fb-ph{position:absolute;inset:0 0 auto 0;padding:10px 12px;font:400 12.5px/1.65 "Poppins",system-ui,sans-serif;color:rgba(193,197,206,.35);
+  pointer-events:none;-webkit-user-select:none;user-select:none;white-space:pre-wrap;overflow:hidden;max-height:96px}
+.fb-field.filled .fb-ph{display:none}
+.fb-card textarea:focus{box-shadow:inset 0 0 0 1px rgba(193,197,206,.22),inset 0 2px 8px rgba(0,0,0,.55)}
+.fb-card textarea:disabled{cursor:not-allowed;pointer-events:none;-webkit-user-select:none;user-select:none}
+.fb-body.locked ::selection{background:transparent}
+
+/* device limit reached: the form stays in place but cannot be used */
+.fb-body.locked .fb-stars,.fb-body.locked textarea{opacity:.4}
+.fb-body.locked .btn{cursor:not-allowed}
+.fb-body.loading .fb-stars,.fb-body.loading textarea{opacity:.4}
+.fb-body.loading .btn{cursor:progress}
+.fb-body.locked .fb-ph{padding-top:11px;font-size:11px;color:rgba(193,197,206,.28)} /* the wait time: smaller and quieter than the normal hint */
+
+.fb-hp{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+
+.fb-row{display:flex;align-items:center;gap:10px}
+.fb-msg{flex:1;min-width:0;min-height:1.2em;font-size:11px;line-height:1.4;color:rgba(193,197,206,.6);cursor:default}
+.fb-card .fb-msg.err{color:rgba(237,66,69,.9)}
+.fb-count{font-size:10px;color:rgba(193,197,206,.45);font-variant-numeric:tabular-nums}
+.fb-count[hidden]{display:none}
+
+.fb-done{display:grid;justify-items:center;gap:12px;align-self:center;justify-self:center;text-align:center;opacity:0;visibility:hidden}
+.fb-card.is-sent .fb-done{opacity:1;visibility:visible}
+.fb-done svg{width:28px;height:28px;color:rgba(193,197,206,.85)}
+.fb-done p{font-size:13px;font-weight:500;color:var(--fg)}
+@media(max-height:560px){.fb-card textarea{height:56px}.fb-ph{max-height:56px}}
+.fb-card .fb-body,.fb-card .fb-done,.fb-card .fb-msg,.fb-card .fb-ph{transition:none!important;animation:none!important}
+@media(prefers-reduced-motion:reduce){.fb-star,.fb-star svg{transition:none}}

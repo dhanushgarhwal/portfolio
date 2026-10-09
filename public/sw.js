@@ -1,5 +1,5 @@
 // Shows the offline page when a page load fails because there is no connection. Only the offline page and what it needs are stored.
-const CACHE = "offline-v3";
+const CACHE = "offline-v4";
 const REQUIRED = ["/offline.html", "/state.css", "/fonts.js"];
 const OPTIONAL = [300, 400, 500, 600, 700].map((w) => `/font/poppins-${w}.woff2`); // a missing font file never blocks the install
 const STORED = [...REQUIRED, ...OPTIONAL];

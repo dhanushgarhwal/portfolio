@@ -1,3 +1,13 @@
 node_modules
 .vercel
 .env*
+
+# built from content.json + templates/ on every deploy (npm run build)
+public/index.html
+*.pem
+*.key
+*.zip
+.DS_Store
+Thumbs.db
+*.log
+service-account*.json

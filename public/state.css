@@ -25,3 +25,7 @@
 .btn:disabled{opacity:.5;cursor:default}
 @media(hover:hover){.btn:not(:disabled):hover{color:#c1c5ce;background:var(--hover);transform:translateY(.5px)}}
 .btn:not(:disabled):active{transform:translateY(1px)}
+/* Dark -> page reveal for every page that has no entrance (404, offline, admin, feedback). The home page (html.js) handles its own in style.css. */
+@keyframes page-reveal{from{opacity:0}to{opacity:1}}
+html:not(.js) body{animation:page-reveal .9s cubic-bezier(.4,0,.2,1) both}
+@media(prefers-reduced-motion:reduce){html:not(.js) body{animation:none}}

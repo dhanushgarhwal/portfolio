@@ -1,9 +1,10 @@
 "use strict";
 
 /* ---- settings ---- */
-const EMAIL = "dhanushgarhwal@gmail.com";   // address for the Email button
-const DISCORD_ID = "1516421354713513995";   // account behind the status dot
+const { email: EMAIL, discord: DISCORD_ID } = document.body.dataset;   // address for the Email button, account behind the status dot (both come from content.json)
 const INTRO = { minMs: 2200, maxMs: 4000 }; // entrance: shortest time it plays, longest wait for slow pictures
+const INTRO_KEY = "intro-at"; // when the entrance last played in this browser (localStorage + a 1-hour cookie as backup); it stays off for 1 hour (the check is in the head of index.html)
+const INTRO_TTL_S = 3600;
 
 const GMAIL = `https://mail.google.com/mail/?extsrc=mailto&url=${encodeURIComponent(`mailto:${EMAIL}`)}`; // Gmail compose link
 const root = document.documentElement;
@@ -15,6 +16,9 @@ const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const mod = (a, m) => ((a % m) + m) % m;
 const put = (el, prop, v) => { if (el.style[prop] !== v) el.style[prop] = v; }; // write a style only when it changes
+const isTyping = el => /^(input|textarea|select)$/i.test(el.tagName) || el.isContentEditable; // keys belong to the field, not to the page
+// a resize fires many times per frame: measure once per frame, just before it is painted
+const onResize = fn => { let f = 0; addEventListener("resize", () => { f ||= requestAnimationFrame(() => { f = 0; fn(); }); }); };
 
 
 /* ---- 1. page width: as wide as the 6 buttons with their labels ---- */
@@ -35,7 +39,7 @@ function fitWidth() {
 $$("[data-mail]").forEach(a => { a.href = GMAIL; a.target = "_blank"; a.rel = "noopener noreferrer"; });
 
 
-/* ---- 3. pages: three pages stacked in the DOM, the "on" class cross-fades one in; the address never changes ---- */
+/* ---- 3. pages: four pages stacked in the DOM, the "on" class cross-fades one in; the address never changes ---- */
 const router = (() => {
   const views = $$("[data-page]");
   const nav = $("#nav"), indicator = $("#ind");
@@ -85,9 +89,9 @@ const router = (() => {
     const REPEAT_GAP_MS = 140;
     let lastKey = 0;
     addEventListener("keydown", e => {
-      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return; // defaultPrevented: the rating stars use the arrow keys themselves
       if (root.classList.contains("src-open")) return;
-      if (/^(input|textarea|select)$/i.test(e.target.tagName) || e.target.isContentEditable) return;
+      if (isTyping(e.target)) return;
       const k = e.key.toLowerCase();
       const dir = k === "arrowup" || k === "w" ? -1 : k === "arrowdown" || k === "s" ? 1 : 0;
       if (!dir) return;
@@ -114,7 +118,7 @@ const router = (() => {
       go(dy < 0 ? 1 : -1);
     };
     addEventListener("pointerdown", e => {
-      sw = e.pointerType === "mouse" || !e.isPrimary || e.target.closest?.("#tlBar") ? null : { id: e.pointerId, x: e.clientX, y: e.clientY };
+      sw = e.pointerType === "mouse" || !e.isPrimary || e.target.closest?.("textarea") ? null : { id: e.pointerId, x: e.clientX, y: e.clientY };
     });
     addEventListener("pointermove", fire);
     addEventListener("pointerup", e => { fire(e); sw = null; });
@@ -269,13 +273,16 @@ class Ring {
    - mouse wheel: every notch is its own push, even when notches arrive a few ms apart
    - trackpad: one swipe = one push. A new swipe starts after a pause, on a change of direction, or when the speed climbs again
      after dying down (a new swipe made on top of the previous swipe's momentum). The momentum tail of a swipe adds nothing.
-   The axis is fixed when a swipe starts, so a slightly crooked swipe never triggers the other direction. */
+   The axis is fixed when a swipe starts, so a slightly crooked swipe never triggers the other direction.
+   single = true: one whole gesture is ONE step, wheel notches included. A fast spin of the mouse wheel or a long trackpad swipe with
+   momentum still moves exactly one place; the next step needs a new gesture (after a short pause, a direction change or a fresh swipe). */
 const wheelLock = { stamp: -1, t: 0, axis: "x" };
-function wheelStepper(canAct, stepFn, axis = "x") {
+function wheelStepper(canAct, stepFn, axis = "x", single = false) {
   const GAP_MS = 140, NEED_PX = 3, FLIP = 2.5, RISE = 2.5, RISE_PX = 12, DECAYED = .5;
   let armed = true, mine = false, lastNotch = false, lastT = 0, sign = 0, acc = 0, peak = 0, low = 0;
   addEventListener("wheel", e => {
     if (e.ctrlKey) return; // trackpad pinch = browser zoom
+    if (e.target.closest?.("textarea")) return; // the feedback box scrolls itself
     if (!canAct()) return;
     e.preventDefault();
     const unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 300 : 1;
@@ -295,7 +302,7 @@ function wheelStepper(canAct, stepFn, axis = "x") {
     const gap = now - lastT;
     lastT = now;
     const round = ad >= 100 && Number.isInteger(ad) && (ad % 100 === 0 || ad % 120 === 0);
-    const notch = e.deltaMode !== 0 || (round && (gap > 50 || lastNotch));
+    const notch = !single && (e.deltaMode !== 0 || (round && (gap > 50 || lastNotch)));
     lastNotch = notch;
     if (notch) { mine = false; armed = true; acc = 0; stepFn(sg < 0 ? -1 : 1); return; }
     // a new swipe: after a pause, a change of direction, or a clear jump in speed after the old swipe had died down.
@@ -314,22 +321,18 @@ function wheelStepper(canAct, stepFn, axis = "x") {
   }, { passive: false });
 }
 
-/* wheel plus left / right arrows or A / D move a ring one step while its page is open */
+/* wheel plus left / right arrows or A / D move a ring one step while its page is open: every gesture (press, swipe, wheel push, button) is exactly one step */
 function bindStepInput(ring, page) {
-  const REPEAT_GAP_MS = 120;
   const active = () => router.current === page && !root.classList.contains("src-open");
-  let lastKey = 0;
-  wheelStepper(active, d => ring.stepBy(d), "x");
+  wheelStepper(active, d => ring.stepBy(d), "x", true);
   addEventListener("keydown", e => {
     if (!active() || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-    if (/^(input|textarea|select)$/i.test(e.target.tagName) || e.target.isContentEditable) return;
+    if (isTyping(e.target)) return;
     const k = e.key.toLowerCase();
     const dir = k === "arrowleft" || k === "a" ? -1 : k === "arrowright" || k === "d" ? 1 : 0;
     if (!dir) return;
     if (k.startsWith("arrow")) e.preventDefault();
-    const now = performance.now();
-    if (e.repeat && now - lastKey < REPEAT_GAP_MS) return; // every real press counts; only a held key is paced
-    lastKey = now;
+    if (e.repeat) return; // one press = one step; a held key never repeats
     ring.stepBy(dir);
   });
 }
@@ -403,7 +406,7 @@ const deck = (() => {
 
   function measure() { W = el.clientWidth; pk2 = probe.offsetWidth; ring.draw(); if (!ring.busy) ring.settle(); }
   measure();
-  addEventListener("resize", measure);
+  onResize(measure);
 
   if (ring.size > 1) {
     ring.slides.forEach((s, i) => s.addEventListener("click", () => { if (s.dataset.o !== "0") ring.glideTo(ring.near(i)); }));
@@ -424,81 +427,83 @@ const deck = (() => {
 })();
 
 
-/* ---- 4b. skills strip + timeline: the strip and the timeline thumb are both drawn from the ring position ----
-   Drag follows the pointer, then lands on the box chosen from release speed (never more than 1 box from the start). A press on the timeline
-   glides forward to the box under the pointer; holding and dragging is a slider that follows both ways. Labels jump forward only. */
+/* ---- 4b. skills strip: an endless row of boxes drawn from the ring position; the first box is selected when the page opens ----
+   The selected box is large, the others sit beside it smaller and dimmer. Drag follows the pointer, then lands on the box chosen from
+   release speed (never more than 1 box from the start). Arrows, keys and a click on a side box move it too. */
 const strip = (() => {
   const el = $("#strip");
   const tiles = el ? $$(":scope > .tile", el) : [];
   if (!tiles.length) return null;
 
-  const bar = $("#tlBar"), barLine = $(".tl-bar", bar), thumb = $(".tl-thumb", bar);
-  const nameEl = $("#tlName"), countEl = $("#tlCount"), labels = $$("#tlLbl button");
-  const DRAG_PX = 6, FLING = .24;       // a drag or fling moves at most 1 box
+  const DRAG_PX = 6;                    // a swipe moves exactly 1 box
   const FADE_FROM = 4, FADE_TO = 5;     // boxes dim from 4 places away and are gone at 5
+  const COMMIT = .12, QUICK = 1;        // a swipe moves one box once it is dragged 12% of a box or flicked at 1 box / s
+  const SIDE = .72;                     // size of every box that is not the selected one (1 = the selected box)
   const count = tiles.length;
-  let step = 136, barW = 0, trackW = 0, active = -1, suppressClick = false;
+  // the coloured glow behind the selected box lives in its own element, so it fades with a compositor-only opacity change
+  // instead of repainting a large blurred shadow on every frame of the slide
+  for (const t of tiles) { const g = document.createElement("i"); g.className = "glow"; g.setAttribute("aria-hidden", "true"); t.prepend(g); }
+  let width = 210, near = 224, far = 163, trackW = 0, active = -1, suppressClick = false;
+  // screen distance of a box from the centre: the first neighbour sits just clear of the big centre box, the rest are evenly spaced
+  const xOf = o => { const d = Math.abs(o), x = d <= 1 ? d * near : near + (d - 1) * far; return o < 0 ? -x : x; };
+  const sizeOf = d => 1 - (1 - SIDE) * Math.min(1, d);
 
   const ring = new Ring(el, tiles, {
     min: 11, // 5 boxes each side + the centre one
     draw() {
-      const { slides, size, pos } = ring;
+      const { slides, size } = ring;
       for (let i = 0; i < size; i++) {
-        const o = ring.offset(i), d = Math.abs(o);
+        const o = ring.offset(i), d = Math.abs(o), x = xOf(o);
         const dim = d <= 1 ? 1 - .55 * d : d <= FADE_FROM ? .45 : .45 * clamp(FADE_TO - d, 0, 1);
-        const ex = clamp((trackW / 2 - Math.abs(o * step)) / (trackW * .14), 0, 1); // soft fade towards the screen edges
+        const ex = clamp((trackW / 2 - Math.abs(x)) / (trackW * .14), 0, 1); // soft fade towards the screen edges
         const vis = dim * ex * ex * (3 - 2 * ex);
         const t = slides[i];
-        t.style.transform = `translate3d(${(o * step).toFixed(2)}px,0,0) scale(${(1 - .1 * Math.min(1, d)).toFixed(4)})`;
-        put(t, "opacity", vis.toFixed(3));
-        put(t, "visibility", vis > .002 ? "" : "hidden");
+        if (vis > .002) {
+          put(t, "transform", `translate3d(${x.toFixed(2)}px,0,0) scale(${sizeOf(d).toFixed(4)})`);
+          put(t, "opacity", vis.toFixed(3));
+          put(t, "visibility", "");
+        } else put(t, "visibility", "hidden"); // a hidden box is neither painted nor moved; it is placed again the moment it shows
       }
-      // the thumb moves like a clock hand and fades out at one end as it returns at the other
-      const m = mod(pos + .5, count) - .5, x = (m + .5) / count * barW;
-      thumb.style.transform = `translate3d(${(x - 2).toFixed(2)}px,0,0)`;
-      thumb.style.opacity = (count > 1 ? clamp(Math.min(m + .5, count - .5 - m) / .5, 0, 1) : 1).toFixed(3);
-      barLine.style.setProperty("--t", `${x.toFixed(2)}px`);
-      const idx = mod(Math.round(pos), count);
+      const idx = mod(Math.round(ring.pos), count);
       if (idx !== active) { active = idx; announce(); }
     },
     // only at rest: corner radius, so a scaled box keeps the same visible radius
     settle() {
       const c = Math.round(ring.pos);
-      ring.slides.forEach((t, i) => { t.style.borderRadius = `${(8 / (1 - .1 * Math.min(1, Math.abs(ring.offset(i, c))))).toFixed(2)}px`; });
+      ring.slides.forEach((t, i) => put(t, "borderRadius", `${(8 / sizeOf(Math.abs(ring.offset(i, c)))).toFixed(2)}px`));
     },
   });
 
   function announce() {
-    const tile = tiles[active], name = tile.getAttribute("aria-label");
-    ring.slides.forEach((t, i) => mod(i, count) === active && Math.abs(ring.offset(i)) < .5 ? t.setAttribute("aria-current", "true") : t.removeAttribute("aria-current"));
-    labels.forEach(b => b.classList.toggle("on", b.dataset.g === tile.dataset.g));
-    el.style.setProperty("--glow", tile.style.getPropertyValue("--c")); // colour that falls on the boxes beside the selected one
+    const tile = tiles[active];
     const mid = Math.round(ring.pos);
-    ring.slides.forEach((t, i) => { t.dataset.n = clamp(Math.round(ring.offset(i, mid)), -2, 2); });
-    nameEl.textContent = name;
-    countEl.textContent = `${active + 1} / ${count}`;
-    bar.setAttribute("aria-valuenow", active + 1);
-    bar.setAttribute("aria-valuetext", name);
+    // attributes are written only when they change, so boxes that stay as they are cause no style work in the middle of a slide
+    ring.slides.forEach((t, i) => {
+      const on = mod(i, count) === active && Math.abs(ring.offset(i)) < .5, has = t.hasAttribute("aria-current");
+      if (on && !has) t.setAttribute("aria-current", "true"); else if (!on && has) t.removeAttribute("aria-current");
+      const n = String(clamp(Math.round(ring.offset(i, mid)), -2, 2));
+      if (t.dataset.n !== n) t.dataset.n = n;
+    });
+    el.style.setProperty("--glow", tile.style.getPropertyValue("--c")); // colour that falls on the boxes beside the selected one
   }
-
-  const ahead = i => { const b = Math.round(ring.target); return b + mod(i - b, count); }; // skill i reached by moving forward; 0 = already there
 
   function measure() {
-    barW = barLine.clientWidth;
+    const gap = parseFloat(getComputedStyle(el).getPropertyValue("--gap")) || 14;
+    width = tiles[0].offsetWidth;
+    near = width * (1 + SIDE) / 2 + gap;
+    far = width * SIDE + gap;
     trackW = el.clientWidth;
-    step = tiles[0].offsetWidth + (parseFloat(getComputedStyle(el).getPropertyValue("--gap")) || 12);
     ring.draw(); if (!ring.busy) ring.settle();
   }
-  bar.setAttribute("aria-valuemax", count);
   measure();
-  addEventListener("resize", measure);
+  onResize(measure);
 
   if (ring.size > 1) {
-    ring.slides.forEach((t, i) => t.addEventListener("click", () => { if (!suppressClick) ring.glideTo(ring.near(i)); }));
-    labels.forEach(b => b.addEventListener("click", () => { // nothing happens if already inside the group
-      if (tiles[mod(Math.round(ring.target), count)].dataset.g === b.dataset.g) return;
-      const first = tiles.findIndex(t => t.dataset.g === b.dataset.g);
-      if (first >= 0) ring.glideTo(ahead(first));
+    // a tap on a side box moves one place towards it (never more, so every input moves exactly one box)
+    ring.slides.forEach((t, i) => t.addEventListener("click", () => {
+      if (suppressClick) return;
+      const away = ring.near(i) - Math.round(ring.pos);
+      if (away) ring.stepBy(away < 0 ? -1 : 1);
     }));
     bindStepInput(ring, "skills");
     addNav(el.parentElement, ring, tiles.length);
@@ -512,7 +517,7 @@ const strip = (() => {
         const dx = ev.clientX - x0, dy = ev.clientY - y0;
         if (!moved && Math.abs(dy) >= DRAG_PX && Math.abs(dy) > Math.abs(dx)) { up(); return; } // vertical swipe: leave it to the page change
         if (!moved) { if (Math.abs(dx) < DRAG_PX) return; moved = true; ring.dragging = true; ring.vel = 0; el.classList.add("drag"); }
-        ring.pos = clamp(p0 - dx / step, from - 1, from + 1);
+        ring.pos = clamp(p0 - dx / near, from - 1, from + 1);
         const now = performance.now();
         trail.push([now, ring.pos]);
         while (trail.length > 2 && now - trail[0][0] > 100) trail.shift();
@@ -525,28 +530,14 @@ const strip = (() => {
         suppressClick = true; setTimeout(() => { suppressClick = false; }, 0); // the click after a drag must not also pick a box
         const [t0, q0] = trail[0], [t1, q1] = trail.at(-1);
         const v = clamp(t1 > t0 ? (q1 - q0) / ((t1 - t0) / 1000) : 0, -14, 14);
-        ring.vel = v; // landing box is decided from where you let go and how fast
-        ring.glideTo(clamp(Math.round(ring.pos + clamp(v * FLING, -1, 1)), from - 1, from + 1));
+        ring.vel = v;
+        // one swipe = exactly one box: far enough or fast enough moves to the next box that way, otherwise it settles back
+        const shift = ring.pos - from, far = Math.abs(shift) >= COMMIT;
+        const dir = far ? Math.sign(shift) : Math.abs(v) >= QUICK ? Math.sign(v) : 0;
+        ring.glideTo(from + dir);
       };
       addEventListener("pointermove", move); addEventListener("pointerup", up); addEventListener("pointercancel", up);
     });
-
-    // timeline: a press glides forward to the box under the pointer; dragging is a slider that also follows backwards
-    let copy = 0, held = false, left = 0;
-    const barPos = e => clamp((e.clientX - left) / barW, 0, 1) * count - .5; // pointer as a box number
-    const aim = e => { const t = Math.round(barPos(e)) + copy * count; if (t !== Math.round(ring.target)) ring.glideTo(t); };
-    bar.addEventListener("pointerdown", e => {
-      if (e.button !== 0 || !e.isPrimary) return;
-      left = barLine.getBoundingClientRect().left;
-      copy = Math.ceil((Math.round(ring.target) - Math.round(barPos(e))) / count); // the loop copy that lies ahead of the strip
-      held = true;
-      bar.setPointerCapture(e.pointerId);
-      aim(e);
-    });
-    bar.addEventListener("pointermove", e => { if (held) aim(e); });
-    const lift = () => { held = false; };
-    bar.addEventListener("pointerup", lift);
-    bar.addEventListener("pointercancel", lift);
   }
   return { el, measure };
 })();
@@ -701,7 +692,7 @@ const status = (() => {
       return false;
     }
   };
-  const answered = ask("POST", 6);
+  const answered = root.hasAttribute("data-preview") ? Promise.resolve(false) : ask("POST", 6); // the admin preview counts no visit and calls no API (its policy forbids it)
 
   const introOver = () => new Promise(done => {
     if (!root.classList.contains("is-intro")) { done(); return; }
@@ -724,8 +715,14 @@ const status = (() => {
 
 /* ---- 7. no selecting or dragging; only the link buttons can be dragged, with their own drag picture ---- */
 {
-  const stop = e => e.preventDefault();
+  // the feedback box keeps selecting, copying and pasting, but only while it is usable (not locked) and has the focus
+  const typing = () => { const t = document.activeElement; return t?.tagName === "TEXTAREA" && !t.disabled && !t.inert; };
+  const stop = e => { if (!(e.target.closest?.("textarea") && typing())) e.preventDefault(); };
   for (const type of ["selectstart", "copy", "dragover", "drop"]) addEventListener(type, stop);
+  // Ctrl/Cmd+A selects text only inside a usable box that has some; anywhere else (or in an empty box) it selects nothing
+  addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "a" && !(typing() && document.activeElement.value)) e.preventDefault();
+  });
   $$("a, img, svg").forEach(el => { el.draggable = el.matches("a.chip"); });
 
   addEventListener("dragstart", e => {
@@ -775,6 +772,7 @@ function loadImage(img) {
 async function enter() {
   const intro = $("#intro");
   const minMs = reduceMotion ? 0 : INTRO.minMs;
+  const playing = root.classList.contains("is-intro"); // the head script decides, before the first paint
 
   // the word slides out once Poppins is ready, so it never shows in a fallback font
   const fonts = window.fontsReady ?? Promise.resolve();
@@ -783,6 +781,14 @@ async function enter() {
 
   const imgs = $$("img").filter(i => !i.closest(".intro"));
   const loading = Promise.all([fonts, ...imgs.map(loadImage)]);
+  if (!playing) { // already played in the last hour: no cover, the page is shown at once; sizes are still measured when fonts and pictures are ready
+    intro.remove();
+    await Promise.race([loading, wait(2500)]);
+    fitWidth(); deck?.measure(); strip?.measure();
+    await nextFrame();
+    root.classList.add("lit"); // short fade from black (the page stayed hidden until fonts and pictures were ready)
+    return;
+  }
   await Promise.all([Promise.race([loading, wait(INTRO.maxMs)]), wait(minMs), status.ready(1500)]);
 
   fitWidth();
@@ -792,6 +798,10 @@ async function enter() {
 
   root.classList.remove("is-intro");
   setTimeout(() => intro.remove(), 1600);
+  if (root.hasAttribute("data-preview")) return; // admin preview: never remembered, so the real site's 1-hour rule is untouched and the entrance plays on every preview
+  const stamp = String(Date.now());
+  try { localStorage.setItem(INTRO_KEY, stamp); } catch { /* storage blocked: the cookie below still remembers */ }
+  try { document.cookie = `${INTRO_KEY}=${stamp}; max-age=${INTRO_TTL_S}; path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`; } catch { /* cookies blocked: it just plays again next time */ }
 }
 
 enter().catch(() => root.classList.remove("is-intro"));
@@ -801,7 +811,8 @@ enter().catch(() => root.classList.remove("is-intro"));
 {
   const box = $("#offline"), retry = $("#offlineRetry");
   let down = false, timer = 0;
-  const reachable = () => fetch("/", { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(6000) }).then(() => true, () => false);
+  const preview = root.hasAttribute("data-preview"); // the admin preview may not make requests: it is never "offline"
+  const reachable = () => preview ? Promise.resolve(true) : fetch("/", { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(6000) }).then(() => true, () => false);
   const check = async () => {
     const ok = await reachable();
     if (ok !== down) return;
@@ -814,7 +825,7 @@ enter().catch(() => root.classList.remove("is-intro"));
   addEventListener("offline", check);
   addEventListener("online", check);
   if (!navigator.onLine) check();
-  navigator.serviceWorker?.register("/sw.js").catch(() => {});
+  if (!preview) navigator.serviceWorker?.register("/sw.js").catch(() => {});
 }
 
 
@@ -845,7 +856,7 @@ enter().catch(() => root.classList.remove("is-intro"));
   if (cur && tag && matchMedia("(hover:hover) and (pointer:fine)").matches) {
     const HALF = 32;   // half of the dot's 64px box
     const FOLLOW = 30; // follow speed: higher sticks closer to the pointer
-    const POINTER = 'a, button, .chip, #tlBar, #ctx, .tile:not([aria-current]), .slide:not([data-o="0"])';
+    const POINTER = 'a, button, .chip, #ctx, .tile:not([aria-current]), .slide:not([data-o="0"])';
     let kind = "", shown = false;
     let tagImg = null; // picture under the "click" pill
     const tones = new WeakMap(); // picture -> "light" | "dark", measured once
@@ -1193,6 +1204,7 @@ enter().catch(() => root.classList.remove("is-intro"));
 
     addEventListener("contextmenu", e => {
       e.preventDefault();
+      if (e.target.closest?.("textarea")) return; // the feedback box has no right-click menu at all, not the browser's and not ours
       if (!fine.matches || srcOpen) return;
       loadSource();
       menu.inert = false;

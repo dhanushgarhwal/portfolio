@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "site": {
+    "url": "https://dhanushgarhwal.vercel.app",
+    "title": "developer",
+    "ogTitle": "Dhanush Garhwal | Portfolio",
+    "ogImageAlt": "Dhanush Garhwal - Portfolio",
+    "email": "dhanushgarhwal@gmail.com",
+    "discordId": "1516421354713513995"
+  },
+  "images": {
+    "favicon": "/image/favicon.png",
+    "faviconSmall": "/image/favicon-sm.png",
+    "og": "/image/og.png"
+  },
+  "texts": {
+    "intro": "developer",
+    "updated": "oct 2026",
+    "home": {
+      "hey": "hey there",
+      "title": "Dhanush Garhwal",
+      "handle": "dhanushgarhwal",
+      "about": "I'm an [[18 yr developer]] figuring life out, and I love building any cool project that comes to my mind. Open to all opportunities, reach me fastest on [[discord|https://discord.com/users/1516421354713513995]]."
+    },
+    "projects": { "hey": "work", "title": "Projects" },
+    "skills": { "hey": "stack", "title": "Skills" },
+    "feedback": { "hey": "your thoughts", "title": "Feedback", "placeholder": "don't overthink, it's anonymous", "send": "send", "blocked": "limit reached", "thanks": "thank you" }
+  },
+  "buttons": [
+    { "id": "github", "label": "GitHub", "icon": "github", "url": "https://github.com/dhanushgarhwal", "visible": true },
+    { "id": "linkedin", "label": "LinkedIn", "icon": "linkedin", "url": "https://www.linkedin.com/in/dhanush-garhwal-a6a6a8441", "visible": true },
+    { "id": "x", "label": "X", "icon": "x", "url": "https://x.com/dhanushgarhwal", "visible": true },
+    { "id": "instagram", "label": "Instagram", "icon": "instagram", "url": "https://www.instagram.com/dhanushgarhwal", "visible": true },
+    { "id": "discord", "label": "Discord", "icon": "discord", "url": "https://discord.com/users/1516421354713513995", "visible": true },
+    { "id": "email", "label": "Email", "icon": "mail", "type": "mail", "visible": true }
+  ],
+  "projects": [
+    {
+      "id": "portfolio",
+      "name": "portfolio",
+      "description": "this website. my portfolio built from scratch in html, css and javascript, with a live discord status and a view counter.",
+      "image": "/image/portfolio.webp",
+      "imageWidth": 1080,
+      "imageHeight": 567,
+      "url": "https://dhanushgarhwal.vercel.app/",
+      "icon": "/image/favicon-sm.png",
+      "button": { "label": "source code", "icon": "github", "url": "https://github.com/dhanushgarhwal/portfolio" },
+      "visible": true
+    }
+  ],
+  "stack": [
+    { "id": "html", "name": "HTML", "color": "#e44d26", "art": { "kind": "image", "letter": "H", "src": "/image/skill/html5.svg", "cdn": "https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/html5/html5-original.svg" }, "visible": true },
+    { "id": "css", "name": "CSS", "color": "#1572b6", "art": { "kind": "image", "letter": "C", "src": "/image/skill/css3.svg", "cdn": "https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/css3/css3-original.svg" }, "visible": true },
+    { "id": "javascript", "name": "JavaScript", "color": "#f7df1e", "art": { "kind": "image", "letter": "JS", "src": "/image/skill/javascript.svg", "cdn": "https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/javascript/javascript-original.svg" }, "visible": true },
+    { "id": "python", "name": "Python", "color": "#3776ab", "art": { "kind": "image", "letter": "PY", "src": "/image/skill/python.svg", "cdn": "https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/python/python-original.svg" }, "visible": true },
+    { "id": "vscode", "name": "VS Code", "color": "#23a9f2", "art": { "kind": "image", "letter": "VS", "src": "/image/skill/vscode.svg", "cdn": "https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/vscode/vscode-original.svg" }, "visible": true },
+    { "id": "git", "name": "Git", "color": "#f05032", "art": { "kind": "image", "letter": "G", "src": "/image/skill/git.svg", "cdn": "https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/git/git-original.svg" }, "visible": true },
+    { "id": "github", "name": "GitHub", "color": "#c1c5ce", "art": { "kind": "sprite", "icon": "github" }, "visible": true },
+    { "id": "cloudflare", "name": "Cloudflare", "color": "#f38020", "art": { "kind": "image", "letter": "CF", "src": "/image/skill/cloudflare.svg", "cdn": "https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/cloudflare/cloudflare-original.svg" }, "visible": true },
+    { "id": "firestore", "name": "Firestore", "color": "#ffca28", "art": { "kind": "sprite", "icon": "firestore" }, "visible": true },
+    { "id": "vercel", "name": "Vercel", "color": "#c1c5ce", "art": { "kind": "sprite", "icon": "vercel" }, "visible": true },
+    { "id": "cs50x", "name": "CS50x", "color": "#a51c30", "art": { "kind": "text", "letter": "50X" }, "visible": true },
+    { "id": "cs50p", "name": "CS50P", "color": "#a51c30", "art": { "kind": "text", "letter": "50P" }, "visible": true }
+  ]
+}

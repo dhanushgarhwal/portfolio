@@ -1,0 +1,251 @@
+// content.json rules. Shared by the build (scripts/build.mjs) and, later, by the admin server, so a draft
+// that passes here is exactly what the build accepts. No dependencies, no file or network access:
+// everything the rules need from outside (icon names, which files exist) is passed in.
+
+export const SCHEMA_VERSION = 1;
+
+export const LIMITS = {
+  text: 80, about: 400, label: 24, url: 300, name: 40, description: 300, handle: 40,
+  buttons: 12, projects: 30, stack: 60, bytes: 200_000,
+};
+
+const ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const EMAIL = /^[^\s@<>"]{1,64}@[A-Za-z0-9.-]{1,200}\.[A-Za-z]{2,24}$/;
+const IMAGE_PATH = /^\/(image|skill)\/(?:[A-Za-z0-9_-][A-Za-z0-9._-]*\/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\.(png|webp|jpe?g|gif|avif|svg)$/;
+const CDN_HOST = "cdn.jsdelivr.net";
+// eslint-disable-next-line no-control-regex
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+const KINDS = ["image", "sprite", "text"];
+
+const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+/** Accepts https:, mailto:, tel: and site-relative paths. Returns an error string, or "" when fine. */
+export function checkUrl(value, { relative = true } = {}) {
+  if (typeof value !== "string" || !value) return "is empty";
+  if (value.length > LIMITS.url) return `is longer than ${LIMITS.url} characters`;
+  if (CONTROL.test(value) || /\s/.test(value)) return "has spaces or control characters";
+  if (value.startsWith("/")) {
+    if (!relative) return "must start with https://";
+    return value.startsWith("//") || value.includes("\\") || value.split("/").includes("..") ? "is not a safe path" : "";
+  }
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(value)?.[1]?.toLowerCase();
+  if (scheme === "mailto") {
+    const address = value.slice(7).split("?")[0];
+    return address ? (EMAIL.test(address) ? "" : "is not a valid email address") : "is empty";
+  }
+  if (scheme === "tel") return value.length > scheme.length + 1 ? "" : "is empty";
+  if (scheme !== "https") return "must start with https://";
+  try {
+    const u = new URL(value);
+    if (u.username || u.password) return "must not contain a login";
+    if (!u.hostname.includes(".")) return "has no valid host";
+  } catch {
+    return "is not a valid link";
+  }
+  return "";
+}
+
+/** Splits the about text into plain / highlight / link parts. [[text]] highlights, [[text|https://...]] links. */
+export function parseAbout(source) {
+  const parts = [];
+  let rest = source;
+  for (;;) {
+    const open = rest.indexOf("[[");
+    if (open < 0) break;
+    const close = rest.indexOf("]]", open + 2);
+    if (close < 0) throw new Error("a [[ is never closed");
+    if (open) parts.push({ text: rest.slice(0, open) });
+    const inner = rest.slice(open + 2, close);
+    if (inner.includes("[[")) throw new Error("[[ inside [[ is not allowed");
+    const bar = inner.indexOf("|");
+    const text = bar < 0 ? inner : inner.slice(0, bar);
+    const url = bar < 0 ? null : inner.slice(bar + 1);
+    if (!text.trim()) throw new Error("a highlight is empty");
+    if (url !== null) {
+      const problem = checkUrl(url, { relative: false });
+      if (problem) throw new Error(`link "${text}" ${problem}`);
+    }
+    parts.push({ hi: text, url });
+    rest = rest.slice(close + 2);
+  }
+  if (rest.includes("]]")) throw new Error("a ]] has no [[");
+  if (rest) parts.push({ text: rest });
+  return parts;
+}
+
+/**
+ * @param {unknown} content parsed content.json
+ * @param {{ icons: string[], fileExists: (publicPath: string) => boolean }} env
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+export function validateContent(content, env) {
+  const errors = [];
+  const warnings = [];
+  const err = (path, msg) => errors.push(`${path}: ${msg}`);
+
+  const keys = (obj, path, required, optional = []) => {
+    if (!isObj(obj)) { err(path, "must be an object"); return false; }
+    for (const k of required) if (!(k in obj)) err(path, `"${k}" is missing`);
+    for (const k of Object.keys(obj)) if (!required.includes(k) && !optional.includes(k)) err(path, `unknown key "${k}"`);
+    return true;
+  };
+  const str = (v, path, max, { min = 1 } = {}) => {
+    if (typeof v !== "string") { err(path, "must be text"); return false; }
+    if (v.trim().length < min) { err(path, "is empty"); return false; }
+    if (v.length > max) { err(path, `is longer than ${max} characters`); return false; }
+    if (CONTROL.test(v)) { err(path, "has control characters or line breaks"); return false; }
+    if (v !== v.trim()) { err(path, "has spaces at the start or end"); return false; }
+    return true;
+  };
+  const url = (v, path, opts) => { const p = checkUrl(v, opts); if (p) err(path, `link ${p}`); };
+  const bool = (v, path) => { if (typeof v !== "boolean") err(path, "must be true or false"); };
+  const icon = (v, path) => { if (typeof v !== "string" || !env.icons.includes(v)) err(path, `unknown icon "${v}"`); };
+  const id = (v, path, seen) => {
+    if (typeof v !== "string" || !ID.test(v)) return err(path, "id must be 1-40 lowercase letters, digits or dashes");
+    if (seen.has(v)) return err(path, `id "${v}" is used twice`);
+    seen.add(v);
+  };
+  const image = (v, path, { fallback = false } = {}) => {
+    if (typeof v !== "string" || !IMAGE_PATH.test(v)) return err(path, "must be a file inside /image or /skill (png, webp, jpg, gif, avif, svg)");
+    if (!env.fileExists(v)) {
+      if (fallback) warnings.push(`${path}: ${v} not found, the page will use its CDN copy`);
+      else err(path, `file ${v} does not exist`);
+    }
+  };
+  const size = (v, path) => { if (!Number.isInteger(v) || v < 1 || v > 10000) err(path, "must be a whole number from 1 to 10000"); };
+
+  if (!isObj(content)) return { errors: ["content.json must be an object"], warnings };
+  if (JSON.stringify(content).length > LIMITS.bytes) err("content.json", `is bigger than ${LIMITS.bytes} bytes`);
+  if (!keys(content, "content", ["schemaVersion", "site", "images", "texts", "buttons", "projects", "stack"])) return { errors, warnings };
+  if (content.schemaVersion !== SCHEMA_VERSION) err("schemaVersion", `must be ${SCHEMA_VERSION}`);
+
+  // site
+  const s = content.site;
+  if (keys(s, "site", ["url", "title", "ogTitle", "ogImageAlt", "email", "discordId"])) {
+    if (typeof s.url !== "string" || !/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(:\d+)?$/i.test(s.url) || s.url.length > LIMITS.url) err("site.url", "must be an https address with no path and no trailing slash");
+    str(s.title, "site.title", LIMITS.text);
+    str(s.ogTitle, "site.ogTitle", LIMITS.text);
+    str(s.ogImageAlt, "site.ogImageAlt", LIMITS.text);
+    if (typeof s.email !== "string" || !EMAIL.test(s.email)) err("site.email", "is not a valid address");
+    if (typeof s.discordId !== "string" || !/^\d{5,25}$/.test(s.discordId)) err("site.discordId", "must be 5-25 digits");
+  }
+
+  // images
+  if (keys(content.images, "images", ["favicon", "faviconSmall", "og"])) {
+    for (const k of ["favicon", "faviconSmall", "og"]) image(content.images[k], `images.${k}`);
+  }
+
+  // texts
+  const t = content.texts;
+  if (keys(t, "texts", ["intro", "updated", "home", "projects", "skills", "feedback"])) {
+    str(t.intro, "texts.intro", 30);
+    str(t.updated, "texts.updated", 30);
+    if (keys(t.home, "texts.home", ["hey", "title", "handle", "about"])) {
+      str(t.home.hey, "texts.home.hey", 40);
+      str(t.home.title, "texts.home.title", LIMITS.text);
+      str(t.home.handle, "texts.home.handle", LIMITS.handle);
+      if (str(t.home.about, "texts.home.about", LIMITS.about)) {
+        try { parseAbout(t.home.about); } catch (e) { err("texts.home.about", e.message); }
+      }
+    }
+    if (keys(t.feedback, "texts.feedback", ["hey", "title", "placeholder", "send", "blocked", "thanks"])) {
+      str(t.feedback.hey, "texts.feedback.hey", 40);
+      str(t.feedback.title, "texts.feedback.title", LIMITS.text);
+      str(t.feedback.placeholder, "texts.feedback.placeholder", LIMITS.text);
+      str(t.feedback.send, "texts.feedback.send", 20);
+      str(t.feedback.blocked, "texts.feedback.blocked", 20);
+      str(t.feedback.thanks, "texts.feedback.thanks", LIMITS.text);
+    }
+    for (const page of ["projects", "skills"]) {
+      if (keys(t[page], `texts.${page}`, ["hey", "title"])) {
+        str(t[page].hey, `texts.${page}.hey`, 40);
+        str(t[page].title, `texts.${page}.title`, LIMITS.text);
+      }
+    }
+  }
+
+  // buttons
+  if (!Array.isArray(content.buttons)) err("buttons", "must be a list");
+  else {
+    if (content.buttons.length > LIMITS.buttons) err("buttons", `at most ${LIMITS.buttons} buttons`);
+    const seen = new Set();
+    content.buttons.forEach((b, i) => {
+      const p = `buttons[${i}]`;
+      if (!keys(b, p, ["id", "label", "icon", "visible"], ["url", "type"])) return;
+      id(b.id, `${p}.id`, seen);
+      str(b.label, `${p}.label`, LIMITS.label);
+      icon(b.icon, `${p}.icon`);
+      bool(b.visible, `${p}.visible`);
+      if (b.type !== undefined && b.type !== "mail") err(`${p}.type`, 'can only be "mail"');
+      if (b.type === "mail") { if ("url" in b) err(`${p}.url`, "an email button takes its address from site.email"); }
+      else if (!("url" in b)) err(`${p}.url`, "is missing");
+      else url(b.url, `${p}.url`);
+    });
+  }
+
+  // projects
+  if (!Array.isArray(content.projects)) err("projects", "must be a list");
+  else {
+    if (content.projects.length > LIMITS.projects) err("projects", `at most ${LIMITS.projects} projects`);
+    if (!content.projects.some((x) => x?.visible === true)) err("projects", "needs at least one visible project");
+    const seen = new Set();
+    content.projects.forEach((x, i) => {
+      const p = `projects[${i}]`;
+      if (!keys(x, p, ["id", "name", "description", "image", "imageWidth", "imageHeight", "url", "icon", "visible"], ["button"])) return;
+      id(x.id, `${p}.id`, seen);
+      str(x.name, `${p}.name`, LIMITS.name);
+      str(x.description, `${p}.description`, LIMITS.description);
+      image(x.image, `${p}.image`);
+      size(x.imageWidth, `${p}.imageWidth`);
+      size(x.imageHeight, `${p}.imageHeight`);
+      url(x.url, `${p}.url`);
+      image(x.icon, `${p}.icon`);
+      bool(x.visible, `${p}.visible`);
+      if (x.button !== undefined && x.button !== null && keys(x.button, `${p}.button`, ["label", "icon", "url"])) {
+        str(x.button.label, `${p}.button.label`, LIMITS.label);
+        icon(x.button.icon, `${p}.button.icon`);
+        url(x.button.url, `${p}.button.url`);
+      }
+    });
+  }
+
+  // stack
+  if (!Array.isArray(content.stack)) err("stack", "must be a list");
+  else {
+    if (content.stack.length > LIMITS.stack) err("stack", `at most ${LIMITS.stack} items`);
+    if (!content.stack.some((x) => x?.visible === true)) err("stack", "needs at least one visible item");
+    const seen = new Set();
+    content.stack.forEach((x, i) => {
+      const p = `stack[${i}]`;
+      if (!keys(x, p, ["id", "name", "color", "art", "visible"])) return;
+      id(x.id, `${p}.id`, seen);
+      str(x.name, `${p}.name`, 30);
+      if (typeof x.color !== "string" || !HEX.test(x.color)) err(`${p}.color`, "must look like #a1b2c3");
+      bool(x.visible, `${p}.visible`);
+      const a = x.art;
+      if (!isObj(a) || !KINDS.includes(a.kind)) return err(`${p}.art.kind`, `must be one of ${KINDS.join(", ")}`);
+      const letter = (v) => str(v, `${p}.art.letter`, 3);
+      if (a.kind === "image") {
+        keys(a, `${p}.art`, ["kind", "letter", "src"], ["cdn"]);
+        letter(a.letter);
+        const hasCdn = a.cdn !== undefined;
+        image(a.src, `${p}.art.src`, { fallback: hasCdn });
+        if (hasCdn) {
+          try {
+            const u = new URL(a.cdn);
+            if (u.protocol !== "https:" || u.hostname !== CDN_HOST || checkUrl(a.cdn, { relative: false })) throw 0;
+          } catch { err(`${p}.art.cdn`, `must be an https://${CDN_HOST}/ link`); }
+        }
+      } else if (a.kind === "sprite") {
+        keys(a, `${p}.art`, ["kind", "icon"]);
+        icon(a.icon, `${p}.art.icon`);
+      } else {
+        keys(a, `${p}.art`, ["kind", "letter"]);
+        letter(a.letter);
+      }
+    });
+  }
+
+  return { errors, warnings };
+}
