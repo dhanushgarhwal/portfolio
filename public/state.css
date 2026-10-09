@@ -1,0 +1,27 @@
+/* Poppins (Latin), served from /font first; fonts.js loads the same weights from Google Fonts only if a file is missing. */
+@font-face{font-family:"Poppins";font-style:normal;font-weight:300;font-display:swap;src:url(/font/poppins-300.woff2) format("woff2")}
+@font-face{font-family:"Poppins";font-style:normal;font-weight:400;font-display:swap;src:url(/font/poppins-400.woff2) format("woff2")}
+@font-face{font-family:"Poppins";font-style:normal;font-weight:500;font-display:swap;src:url(/font/poppins-500.woff2) format("woff2")}
+@font-face{font-family:"Poppins";font-style:normal;font-weight:600;font-display:swap;src:url(/font/poppins-600.woff2) format("woff2")}
+@font-face{font-family:"Poppins";font-style:normal;font-weight:700;font-display:swap;src:url(/font/poppins-700.woff2) format("woff2")}
+/* One panel style for every box: dark panel colour, edge light, full shadow stack, and the hover tone layered on the panel. */
+:root{
+  --panel:rgb(9,9,10);
+  --edge:inset 0 0 0 1px rgba(193,197,206,.08),inset 0 1px 0 rgba(193,197,206,.2);
+  --box:0 32px 64px -16px #0000004c,0 16px 32px -8px #0000004c,0 8px 16px -4px #0000003d,0 4px 8px -2px #0000003d,0 -8px 16px -1px #00000029,0 2px 4px -1px #0000003d,var(--edge);
+  --hover:linear-gradient(rgba(193,197,206,.07),rgba(193,197,206,.07)),var(--panel);
+}
+/* Full-screen state view: 404 page, offline page and the in-page "No internet" layer. */
+.state,.state *{box-sizing:border-box;margin:0;padding:0}
+.state{position:fixed;inset:0;z-index:200;display:grid;place-content:center;justify-items:center;gap:20px;padding:16px;text-align:center;
+  background:radial-gradient(ellipse 75% 70% at 50% 48%,#0b0b0c 0%,#000 100%);color:#c1c5ce;font-family:"Poppins",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.state[hidden]{display:none}
+.state h1{font-size:clamp(48px,14vw,96px);font-weight:600;letter-spacing:-.035em;line-height:1.1}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 14px;border:0;border-radius:8px;white-space:nowrap;
+  font:500 12px/1 "Poppins",system-ui,sans-serif;color:rgba(193,197,206,.7);text-decoration:none;cursor:pointer;background:var(--panel);outline:none;
+  box-shadow:var(--box);
+  transition:color .15s,background-color .15s,transform .15s}
+.btn:disabled{opacity:.5;cursor:default}
+@media(hover:hover){.btn:not(:disabled):hover{color:#c1c5ce;background:var(--hover);transform:translateY(.5px)}}
+.btn:not(:disabled):active{transform:translateY(1px)}

@@ -1,0 +1,10 @@
+{
+  "outputDirectory": "public",
+  "regions": ["bom1"],
+  "functions": {
+    "api/**/*.js": { "includeFiles": "public/404.html" }
+  },
+  "headers": [
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}

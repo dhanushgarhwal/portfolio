@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="noindex">
+<title>developer</title>
+<style>html{background:#000}</style>
+<link rel="icon" type="image/png" href="/image/favicon.png">
+<link rel="stylesheet" href="/state.css">
+<script src="/fonts.js" defer></script>
+</head>
+<body>
+<main class="state">
+  <h1>No internet</h1>
+  <button class="btn" id="retry" type="button">Try again</button>
+</main>
+<script>
+// reload only when the site answers again
+const back = () => fetch("/", { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(6000) }).then(() => location.reload(), () => {});
+document.getElementById("retry").addEventListener("click", back);
+addEventListener("online", back);
+setInterval(back, 3000);
+</script>
+</body>
+</html>
