@@ -6,6 +6,6 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node scripts/test.mjs && node scripts/test-feedback.mjs && node scripts/test-firestore.mjs && node scripts/test-firestore-admin.mjs && node scripts/test-admin.mjs && node scripts/test-admin-page.mjs && node scripts/test-editors.mjs && node scripts/test-push.mjs"
+    "test": "node scripts/test.mjs && node scripts/test-journey.mjs && node scripts/test-feedback.mjs && node scripts/test-firestore.mjs && node scripts/test-firestore-admin.mjs && node scripts/test-admin.mjs && node scripts/test-admin-page.mjs && node scripts/test-editors.mjs && node scripts/test-push.mjs"
   }
 }

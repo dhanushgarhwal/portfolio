@@ -39,12 +39,53 @@ function fitWidth() {
 $$("[data-mail]").forEach(a => { a.href = GMAIL; a.target = "_blank"; a.rel = "noopener noreferrer"; });
 
 
+/* What the visitor did last, for the Journey road: when it opens it must tell the tail of the swipe (or the held key) that brought the visitor there from the
+   next gesture, which works at once. Only read, never acted on, so nothing here changes how a page is switched. */
+const lastInput = { wheel: null, key: "" };
+addEventListener("wheel", e => {
+  const unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 300 : 1, d = e.deltaY * unit;
+  const round = Math.abs(d) >= 100 && Number.isInteger(d) && (d % 100 === 0 || d % 120 === 0);
+  lastInput.wheel = { t: e.timeStamp, d, notch: e.deltaMode !== 0 || round };
+}, { capture: true, passive: true });
+addEventListener("keydown", e => { if (!e.repeat) lastInput.key = e.key.toLowerCase(); }, true);
+addEventListener("keyup", () => { lastInput.key = ""; }, true);
+addEventListener("blur", () => { lastInput.key = ""; });
+
+
 /* ---- 3. pages: four pages stacked in the DOM, the "on" class cross-fades one in; the address never changes ---- */
 const router = (() => {
   const views = $$("[data-page]");
   const nav = $("#nav"), indicator = $("#ind");
   const links = $$("a", nav);
   let current = null;
+
+  // Journey: public/journey.js is fetched in the background once the browser is idle after the first paint (and at once when its icon is pointed at or touched, if that comes first).
+  // It exports mount(view, lastInput) / unmount(): mounted while the page is open, torn down when it is left, so a closed Journey costs nothing.
+  const journey = (() => {
+    const view = $("[data-page=journey]");
+    if (!view?.dataset.src) return null;
+    let mod = null, pending = null, mounted = false, want = false;
+    const load = () => (pending ??= import(view.dataset.src).then(m => (mod = m)).catch(e => { pending = null; console.warn("journey: could not load", e); return null; }));
+    const apply = () => {
+      if (!mod) return;
+      if (want && !mounted) { mounted = true; try { mod.mount(view, lastInput); } catch (e) { mounted = false; view.removeAttribute("data-hold"); console.warn("journey: mount failed", e); } }
+      else if (!want && mounted) { mounted = false; try { mod.unmount(); } catch (e) { console.warn("journey: unmount failed", e); } }
+    };
+    const opener = $("[data-go=journey]", nav);
+    for (const type of ["pointerenter", "pointerdown", "focus"]) opener?.addEventListener(type, load, { once: true });
+    // Fetched and parsed in the background as soon as the browser is idle after the site's first paint, so by the time anyone can click the icon it is
+    // already here and opening is instant. Idle time means the site's own loading is never slowed; a data-saver visitor keeps the lazy behaviour.
+    const idle = window.requestIdleCallback ?? ((f) => setTimeout(f, 200));
+    if (!navigator.connection?.saveData) idle(() => load().then((m) => m && idle(() => m.warm?.(view), { timeout: 600 })), { timeout: 600 });
+    return {
+      sync(id) {
+        want = id === "journey";
+        // the page takes its final shape (title in place, list hidden) in the same moment it opens, so the plain list never flashes while journey.js loads
+        // its wheel / swipe / arrow keys belong to it from this moment too (not only once journey.js has loaded), or a scroll during the first load would flip the page away
+        if (want) { view.dataset.world = ""; view.setAttribute("data-hold", ""); load().then((m) => { if (!m) { view.removeAttribute("data-world"); view.removeAttribute("data-hold"); } apply(); }); } else { view.removeAttribute("data-hold"); apply(); }
+      },
+    };
+  })();
 
   // the ring sits on the selected icon, in whole pixels
   const moveInd = () => {
@@ -64,6 +105,7 @@ const router = (() => {
     }
     for (const a of links) { if (a.dataset.go === id) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); }
     moveInd();
+    journey?.sync(id);
   }
 
   // the menu switches between a column and a row: put the ring back without sliding it
@@ -81,7 +123,9 @@ const router = (() => {
 
   // previous / next page, looping round the ends; every input counts, even while the last change is still playing
   const order = links.map(a => a.dataset.go);
-  const canNav = () => !root.classList.contains("is-intro") && $("#offline").hidden && !root.classList.contains("src-open");
+  // a page that moves by itself (the Journey road) sets data-hold on its view: wheel, swipe and arrow keys then belong to it, the menu icons still switch pages
+  const held = () => !!$("[data-page].on")?.hasAttribute("data-hold");
+  const canNav = () => !root.classList.contains("is-intro") && $("#offline").hidden && !root.classList.contains("src-open") && !held();
   const go = dir => { if (canNav()) show(order[mod(order.indexOf(current) + dir, order.length)]); };
 
   // up / W = previous page, down / S = next page; a held key repeats at a steady pace
@@ -91,7 +135,7 @@ const router = (() => {
     addEventListener("keydown", e => {
       if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return; // defaultPrevented: the rating stars use the arrow keys themselves
       if (root.classList.contains("src-open")) return;
-      if (isTyping(e.target)) return;
+      if (isTyping(e.target) || held()) return;
       const k = e.key.toLowerCase();
       const dir = k === "arrowup" || k === "w" ? -1 : k === "arrowdown" || k === "s" ? 1 : 0;
       if (!dir) return;
@@ -852,7 +896,7 @@ enter().catch(() => root.classList.remove("is-intro"));
 /* ---- 11. cursor: mouse and pen only. One dot that inverts what is under it; it grows over buttons, becomes a hand-sized
    grab dot over the skills strip and turns into the inverted "click" pill over a project picture ---- */
 {
-  const cur = $("#cur"), tag = $("#curTag"), stripEl = $("#strip");
+  const cur = $("#cur"), tag = $("#curTag"), stripEl = $("#strip"), roadEl = $("#jyStage"); // roadEl: the Journey road drags like the strip
   if (cur && tag && matchMedia("(hover:hover) and (pointer:fine)").matches) {
     const HALF = 32;   // half of the dot's 64px box
     const FOLLOW = 30; // follow speed: higher sticks closer to the pointer
@@ -867,7 +911,7 @@ enter().catch(() => root.classList.remove("is-intro"));
     const toneOf = img => {
       if (tones.has(img)) return tones.get(img);
       if (!img.complete || !img.naturalWidth) return "light";
-      let tone = "light";
+      let tone;
       try {
         const c = document.createElement("canvas"); c.width = c.height = 16;
         const g = c.getContext("2d", { willReadFrequently: true });
@@ -883,13 +927,13 @@ enter().catch(() => root.classList.remove("is-intro"));
 
     const kindOf = (t, down) => {
       if (!(t instanceof Element)) return "dot";
-      if (down && stripEl?.classList.contains("drag")) return "grabbing";
+      if (down && (stripEl?.classList.contains("drag") || roadEl?.classList.contains("drag"))) return "grabbing";
       const img = t.closest(".shot img");
       if (img && (img.closest(".slide")?.dataset.o ?? "0") === "0") { tagImg = img; return "tag"; }
       if (t.closest("#insp header") && !t.closest("button")) return down ? "moving" : "move";
       if (t.closest("button:disabled")) return "dot";
       if (t.closest(POINTER)) return "pointer";
-      if (t.closest("#strip")) return "grab";
+      if (t.closest("#strip, #jyStage[data-ready], .jy-stage.is-ready")) return "grab";
       return "dot";
     };
     const apply = k => {
@@ -933,7 +977,7 @@ enter().catch(() => root.classList.remove("is-intro"));
       tx = p.clientX; ty = p.clientY;
       if (!shown) snap = true; // appears at the pointer instead of sliding in
       show(true);
-      if (kind === "grab" || kind === "grabbing") apply(e.buttons > 0 && stripEl?.classList.contains("drag") ? "grabbing" : "grab");
+      if (kind === "grab" || kind === "grabbing") apply(e.buttons > 0 && (stripEl?.classList.contains("drag") || roadEl?.classList.contains("drag")) ? "grabbing" : "grab");
       wake();
     }, { passive: true });
     addEventListener("pointerover", e => { if (e.pointerType !== "touch") apply(kindOf(e.target, e.buttons > 0)); }, { passive: true });

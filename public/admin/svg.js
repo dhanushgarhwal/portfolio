@@ -58,7 +58,6 @@ export function sanitizeSvg(input) {
   let src = input.replace(/^\uFEFF/, "");
   src = src.replace(/^\s*<\?xml[^>]*\?>/i, "").replace(/<!--[\s\S]*?-->/g, "");
   if (/<!|<\?|\]\]>/.test(src)) return { ok: false, error: "Unsupported markup" };
-  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(src)) return { ok: false, error: "Invalid characters" };
 
   const out = [];

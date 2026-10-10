@@ -7,6 +7,7 @@ import { buttonsView } from "./buttons.js";
 import { imagesView } from "./images.js";
 import { projectsView } from "./projects.js";
 import { stackView } from "./stack.js";
+import { journeyView } from "./journey.js";
 import { pushView } from "./push.js";
 import { mountPreview, unmountPreview } from "./preview.js";
 
@@ -18,11 +19,12 @@ const SECTIONS = [
   { id: "buttons", label: "Buttons", icon: "button" },
   { id: "projects", label: "Projects", icon: "work" },
   { id: "stack", label: "Stack", icon: "code" },
+  { id: "journey", label: "Journey", icon: "route" },
   { id: "feedback", label: "Feedback", icon: "feedback" },
   { id: "push", label: "Push", icon: "push" },
 ];
 const DEFAULT = "feedback";
-const EDITORS = { texts: textsView, images: imagesView, buttons: buttonsView, projects: projectsView, stack: stackView, push: pushView };
+const EDITORS = { texts: textsView, images: imagesView, buttons: buttonsView, projects: projectsView, stack: stackView, journey: journeyView, push: pushView };
 
 let me = null;
 let expiryTimer = 0;

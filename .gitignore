@@ -11,3 +11,8 @@ public/index.html
 Thumbs.db
 *.log
 service-account*.json
+
+# editor folders and leftovers of an interrupted build
+.vscode/
+.idea/
+*.tmp

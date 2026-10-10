@@ -1,6 +1,6 @@
 // Rich About editor. The stored value stays the site's own format: [[highlight]] and [[text|link]].
 // Select text to get a small menu (highlight, link, clear). Nothing is remembered: typing next to a styled word is always plain.
-import { h, icon, iconButton } from "./ui.js";
+import { h, iconButton } from "./ui.js";
 import { errorsFor, settled } from "./draft.js";
 
 const URL_OK = /^(https:\/\/[^\s/][^\s]*|mailto:[^\s]+|tel:[^\s]+)$/i;

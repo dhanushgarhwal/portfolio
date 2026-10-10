@@ -106,7 +106,7 @@ test("feedback is the 4th section of the main page: a nav icon, no link, no sepa
   const html = renderPage(template, copy());
   assert.match(html, /<a role="button" data-go="feedback" aria-label="Feedback" data-tip="Feedback"><svg aria-hidden="true"><use href="#i-star"\/><\/svg><\/a>/);
   assert.match(html, /<main class="wrap view" data-page="feedback">/);
-  assert.equal((html.match(/data-go="/g) ?? []).length, 4, "home, projects, skills, feedback");
+  assert.equal((html.match(/data-go="/g) ?? []).length, 5, "home, projects, skills, journey, feedback");
   assert.ok(!/href="\/feedback"|#feedback/.test(html), "no /feedback or #feedback address anywhere");
   assert.ok(!existsSync(join(root, "templates/feedback.template.html")), "the old separate page is gone");
   assert.ok(!JSON.stringify(copy().buttons).includes("feedback"), "no feedback button on the home page");
@@ -167,12 +167,14 @@ test("build stamps the page's styles and scripts with a hash of each file", () =
     for (const p of ["scripts", "templates", "public", "content.json"]) cpSync(join(root, p), join(dir, p), { recursive: true });
     assert.equal(spawnSync(process.execPath, ["scripts/build.mjs"], { cwd: dir, encoding: "utf8" }).status, 0);
     const html = readFileSync(join(dir, "public/index.html"), "utf8");
-    const files = ["state.css", "style.css", "feedback.css", "fonts.js", "script.js", "feedback.js"];
+    const files = ["state.css", "style.css", "feedback.css", "journey.css", "fonts.js", "script.js", "feedback.js"];
     for (const f of files) {
       const hash = createHash("sha256").update(readFileSync(join(dir, "public", f))).digest("hex").slice(0, 10);
       assert.ok(html.includes(`="/${f}?v=${hash}"`), `${f} is not loaded by its hash`);
     }
-    assert.ok(!/(?:href|src)="\/(?:state|style|feedback)\.css"|(?:href|src)="\/(?:fonts|script|feedback)\.js"/.test(html), "no file is left without a hash");
+    assert.ok(!/(?:href|src)="\/(?:state|style|feedback|journey)\.css"|(?:href|src)="\/(?:fonts|script|feedback|journey)\.js"/.test(html), "no file is left without a hash");
+    const lazy = readFileSync(join(dir, "public/journey.js")); // loaded on demand (data-src), stamped like the rest
+    assert.ok(html.includes(`data-src="/journey.js?v=${createHash("sha256").update(lazy).digest("hex").slice(0, 10)}"`), "journey.js is not addressed by its hash");
     writeFileSync(join(dir, "public/script.js"), `${readFileSync(join(dir, "public/script.js"), "utf8")}\n// changed`);
     spawnSync(process.execPath, ["scripts/build.mjs"], { cwd: dir, encoding: "utf8" });
     assert.notEqual(readFileSync(join(dir, "public/index.html"), "utf8").match(/script\.js\?v=(\w+)/)[1], html.match(/script\.js\?v=(\w+)/)[1], "a changed file gets a new address");

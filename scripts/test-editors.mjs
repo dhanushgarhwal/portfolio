@@ -4,13 +4,14 @@ import { readFileSync } from "node:fs";
 import { handleAdmin } from "../lib/admin.js";
 import { makeRepo } from "../lib/repo.js";
 import { sanitizeSvg } from "../public/admin/svg.js";
-import { changesOf, errorsAt, moveItem, refsTo, rewriteRefs, safeName, sniff, uniqueId } from "../public/admin/logic.js";
+import { JOURNEY, changesOf, clampTo, errorsAt, journeyDateKey, listAt, moveItem, newJourney, randomSeed, refsTo, rewriteRefs, safeName, sameDates, sniff, sortJourney, summarize, uniqueId } from "../public/admin/logic.js";
 import { iconsIn } from "./render.mjs";
-import { validateContent } from "./schema.mjs";
+import { JOURNEY_DIRECTIONS, JOURNEY_RANGES, JOURNEY_SIDES, LIMITS, journeyDateKey as schemaDateKey, sortJourney as schemaSort, validateContent } from "./schema.mjs";
+import { SAMPLE_JOURNEY_ENTRIES } from "./fixtures.mjs";
 
 let passed = 0;
 const test = async (name, fn) => { try { await fn(); passed++; } catch (e) { console.error(`FAIL ${name}\n${e.stack.split("\n").slice(0, 4).join("\n")}`); process.exitCode = 1; } };
-const content = () => JSON.parse(readFileSync(new URL("../content.json", import.meta.url), "utf8"));
+const content = () => { const c = JSON.parse(readFileSync(new URL("../content.json", import.meta.url), "utf8")); c.journey.entries = structuredClone(SAMPLE_JOURNEY_ENTRIES); return c; };
 const icons = iconsIn(readFileSync(new URL("../templates/index.template.html", import.meta.url), "utf8"));
 
 /* ---- SVG sanitizer ---- */
@@ -107,6 +108,112 @@ await test("errorsAt picks the messages under a path", () => {
   assert.deepEqual(errorsAt(e, "buttons[1].url"), ["link must start with https://"]);
   assert.deepEqual(errorsAt(e, "texts.intro"), ["is empty"]);
   assert.deepEqual(errorsAt(e, "buttons[1]"), ["link must start with https://"]);
+});
+
+/* ---- Journey editor logic ---- */
+const check = (c) => validateContent(c, { icons, fileExists: () => true }).errors;
+await test("journey: the admin's mirrored limits equal the schema's", () => {
+  assert.deepEqual(JOURNEY.ranges, JOURNEY_RANGES);
+  assert.deepEqual(JOURNEY.directions.map((d) => d[0]), JOURNEY_DIRECTIONS);
+  assert.deepEqual(JOURNEY.sides.map((d) => d[0]), JOURNEY_SIDES);
+  assert.equal(JOURNEY.entries, LIMITS.journeyEntries);
+  assert.equal(JOURNEY.title, LIMITS.journeyTitle);
+  assert.equal(JOURNEY.text, LIMITS.journeyText);
+  assert.equal(JOURNEY.tag, LIMITS.journeyTag);
+  assert.equal(JOURNEY.heading, LIMITS.text);
+  assert.equal(JOURNEY.label, LIMITS.label);
+});
+await test("journey: date key and sort give the same answers as the schema's", () => {
+  for (const d of ["2024", "2024-05", "2024-05-17", "2024-02-30", "2023-02-29", "2024-02-29", "1899", "2101", "2024-13", "2024-00", "24-05", "", "x", 2024, null, undefined, "2024-5-1"]) assert.equal(journeyDateKey(d), schemaDateKey(d), String(d));
+  const list = [{ date: "2024-05" }, { date: "bad" }, { date: "2024" }, { date: "2024-05" }, { date: "2022-01-02" }].map((e, i) => ({ ...e, i }));
+  for (const dir of ["latest-top", "latest-bottom"]) assert.deepEqual(sortJourney(list, dir), schemaSort(list, dir));
+  assert.equal(list[0].i, 0, "the input is not reordered");
+});
+await test("journey: same dates are found, only for valid dates", () => {
+  const e = [{ id: "a", date: "2024-05" }, { id: "b", date: "2024-05" }, { id: "c", date: "2024" }, { id: "d", date: "nope" }, { id: "e", date: "nope" }];
+  assert.deepEqual([...sameDates(e)].sort(), ["a", "b"]);
+});
+await test("journey: re-roll gives a valid seed and changes only the seed", () => {
+  for (const r of [0, 0.5, 0.999999999]) { const n = randomSeed(() => r); assert.ok(Number.isInteger(n) && n >= 0 && n <= 2_147_483_647); }
+  const a = content(), b = content();
+  b.journey.seed = randomSeed(() => 0.123);
+  assert.notEqual(a.journey.seed, b.journey.seed);
+  assert.deepEqual(changesOf(a, b).map((x) => `${x.area}:${x.id}`), ["journey:seed"]);
+  assert.deepEqual(check(b), []);
+});
+await test("journey: clampTo keeps numbers inside their range", () => {
+  assert.equal(clampTo(9999, JOURNEY.ranges.path.spacing), 800);
+  assert.equal(clampTo(-5, JOURNEY.ranges.path.spacing), 160);
+  assert.equal(clampTo(45.6, JOURNEY.ranges.path.width), 46);
+  assert.equal(clampTo(0.123456, JOURNEY.ranges.path.jitter), 0.123);
+  assert.equal(clampTo(NaN, JOURNEY.ranges.path.width, 50), 50);
+  assert.equal(clampTo("7", JOURNEY.ranges.path.width, 50), 50);
+});
+await test("journey: a new Journey is valid, has no entries, and listAt reaches list paths", () => {
+  const c = content();
+  c.journey = newJourney();
+  assert.deepEqual(check(c), []);
+  assert.deepEqual(listAt(c, "journey.entries"), []);
+  assert.equal(listAt(c, "projects"), c.projects);
+  assert.equal(listAt(c, "journey.nope.entries"), undefined);
+  delete c.journey;
+  assert.equal(listAt(c, "journey.entries"), undefined);
+});
+await test("journey: changesOf reports settings, entries (added, edited, removed) and a block that appears or goes", () => {
+  const a = content(), b = content();
+  assert.deepEqual(changesOf(a, b), []);
+  b.journey.title = "road";
+  b.journey.path.width = 60;
+  b.journey.highlight.color = "#ffffff";
+  b.journey.entries[0].title = "changed";
+  b.journey.entries = b.journey.entries.filter((e) => e.id !== "cs50p");
+  b.journey.entries.push({ id: "new-one", date: "2026", title: "new", text: "t", tag: "x", icon: "star", visible: true, pinned: false, side: "auto" });
+  const c = changesOf(a, b);
+  const has = (op, id) => c.some((x) => x.area === "journey" && x.op === op && x.id === id);
+  assert.ok(has("edited", "title") && has("edited", "path.width") && has("edited", "highlight.color"));
+  assert.ok(has("edited", a.journey.entries[0].id) && has("removed", "cs50p") && has("added", "new-one"));
+  assert.ok(!c.some((x) => x.op === "moved"), "the order of entries is the date, never a move");
+  assert.equal(summarize(c).sum.journey, c.length);
+  const gone = content(); delete gone.journey;
+  assert.deepEqual(changesOf(a, gone).map((x) => `${x.op}:${x.id}`), ["removed:journey"]);
+  assert.deepEqual(changesOf(gone, a).map((x) => `${x.op}:${x.id}`), ["added:journey"]);
+  assert.deepEqual(changesOf(gone, gone), []);
+});
+await test("journey: a milestone picture is found, replaced and unlinked like any other use", () => {
+  const c = content();
+  c.journey.entries[1].image = "/image/journey/x.webp";
+  const refs = refsTo(c, "/image/journey/x.webp");
+  assert.deepEqual(refs.map((r) => [r.path, r.required]), [["journey.entries[1].image", false]]);
+  assert.equal(rewriteRefs(c, "/image/journey/x.webp", "/image/journey/y.webp").journey.entries[1].image, "/image/journey/y.webp");
+  const unl = rewriteRefs(c, "/image/journey/x.webp", null);
+  assert.ok(!("image" in unl.journey.entries[1]));
+  assert.deepEqual(check(unl), []);
+  assert.equal(c.journey.entries[1].image, "/image/journey/x.webp", "input is not mutated");
+});
+await test("journey: the validator gives readable paths and refuses unknown keys, bad numbers and a long list", () => {
+  const bad = (fn, re) => { const c = content(); fn(c); const e = check(c); assert.ok(e.some((m) => re.test(m)), `${re}: ${e.join(" | ")}`); };
+  bad((c) => { c.journey.entries[0].date = "2024-02-30"; }, /journey\.entries\[0\]\.date/);
+  bad((c) => { c.journey.entries[0].title = "x".repeat(61); }, /journey\.entries\[0\]\.title/);
+  bad((c) => { c.journey.entries[0].text = "x".repeat(281); }, /journey\.entries\[0\]\.text/);
+  bad((c) => { c.journey.entries[1].id = c.journey.entries[0].id; }, /journey\.entries\[1\]/);
+  bad((c) => { c.journey.entries[0].icon = "nope-icon"; }, /journey\.entries\[0\]\.icon/);
+  bad((c) => { c.journey.entries[0].image = "/evil/x.png"; }, /journey\.entries\[0\]\.image/);
+  bad((c) => { c.journey.entries[0].link = { label: "go", url: "javascript:alert(1)" }; }, /journey\.entries\[0\]\.link/);
+  bad((c) => { c.journey.entries[0].side = "up"; }, /journey\.entries\[0\]\.side/);
+  bad((c) => { c.journey.entries[0].extra = 1; }, /journey\.entries\[0\]/);
+  bad((c) => { c.journey.extra = 1; }, /journey/);
+  bad((c) => { c.journey.path.spacing = 5000; }, /journey\.path\.spacing/);
+  bad((c) => { c.journey.path.amplitude = 0.1; }, /journey\.path\.amplitude/);
+  bad((c) => { c.journey.seed = 1.5; }, /journey\.seed/);
+  bad((c) => { c.journey.highlight.speed = 2; }, /journey\.highlight\.speed/);
+  bad((c) => { c.journey.highlight.color = "red"; }, /journey\.highlight\.color/);
+  bad((c) => { c.journey.direction = "sideways"; }, /journey\.direction/);
+  bad((c) => { c.journey.entries = Array.from({ length: 61 }, (_, i) => ({ ...c.journey.entries[0], id: `e-${i}` })); }, /journey\.entries/);
+  const ok = content();
+  ok.journey.entries = Array.from({ length: 60 }, (_, i) => ({ ...ok.journey.entries[0], id: `e-${i}` }));
+  assert.deepEqual(check(ok), [], "exactly 60 entries is fine");
+  const none = content(); none.journey.entries = [];
+  assert.deepEqual(check(none), [], "no entries is fine");
 });
 
 /* ---- repo reader (fake GitHub) ---- */

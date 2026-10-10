@@ -41,7 +41,7 @@ export function pushView() {
     const { sum, rows } = summarize(changes, s.files.map((f) => f.path));
 
     meta.replaceChildren(chip("changes", { strong: changes.length }), ...(s.behind ? [chip("behind", { lead: "alert" })] : []));
-    const parts = [["texts", sum.texts], ["buttons", sum.buttons], ["projects", sum.projects], ["stack", sum.stack], ["site", sum.site]].filter(([, n]) => n);
+    const parts = [["texts", sum.texts], ["buttons", sum.buttons], ["projects", sum.projects], ["stack", sum.stack], ["journey", sum.journey], ["site", sum.site]].filter(([, n]) => n);
     const im = sum.images;
     sums.replaceChildren(
       ...parts.map(([label, n]) => chip(label, { strong: n })),

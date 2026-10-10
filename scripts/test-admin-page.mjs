@@ -29,6 +29,21 @@ test("CSP: no inline script, inline style, style attribute, event handler or jav
   }
 });
 
+test("Journey admin: the section is registered after Stack and before Feedback, and everything it draws exists in the admin sprite", () => {
+  const app = files["app.js"], j = files["journey.js"];
+  const ids = [...app.matchAll(/\{ id: "(\w+)", label/g)].map((m) => m[1]);
+  assert.ok(ids.indexOf("journey") === ids.indexOf("stack") + 1 && ids.indexOf("journey") < ids.indexOf("feedback"), ids.join());
+  assert.match(app, /journey: journeyView/);
+  const sprite = new Set([...html.matchAll(/id="i-([a-z0-9-]+)"/g)].map((m) => m[1]));
+  const used = new Set([...[app, j, files["kit.js"]].join("\n").matchAll(/(?:icon|iconButton)\("([a-z0-9-]+)"/g)].map((m) => m[1]));
+  for (const name of [...used, "route", "unlock", "lock", "marker", "pin", "file", "download", "upload", "refresh"]) assert.ok(sprite.has(name), `missing icon i-${name}`);
+});
+test("Journey admin: the Push screen counts Journey changes and the editor never writes markup or styles", () => {
+  assert.match(files["push.js"], /\["journey", sum\.journey\]/);
+  assert.ok(!/innerHTML|style=|\.style\.cssText|setAttribute\("style"/.test(files["journey.js"]));
+  assert.ok(!/localStorage|sessionStorage|eval\(|new Function/.test(files["journey.js"]));
+});
+
 test("CSP: the page only loads files from its own origin", () => {
   for (const url of html.match(/(?:src|href)="[^"#][^"]*"/g) ?? []) assert.ok(/="\/(?!\/)/.test(url), url);
   for (const css of ["admin/admin.css", "style.css", "state.css"]) assert.ok(!/url\(\s*["']?(https?:)?\/\//.test(read(`public/${css}`)), `${css} loads from outside`);
@@ -55,7 +70,7 @@ test("/admin is served from public/admin/index.html and the public site rules ar
   assert.equal(header("/sw.js", "Cache-Control"), "no-cache");
   assert.equal(header("/font/(.*)", "Cache-Control"), "public, max-age=31536000, immutable");
   assert.match(header("/(image|skill)/(.*)", "Cache-Control"), /^public, max-age=\d+, stale-while-revalidate=\d+$/);
-  const VERSIONED = "/(state\\.css|style\\.css|feedback\\.css|fonts\\.js|script\\.js|feedback\\.js)";
+  const VERSIONED = "/(state\\.css|style\\.css|feedback\\.css|journey\\.css|fonts\\.js|script\\.js|feedback\\.js|journey\\.js)";
   assert.equal(header(VERSIONED, "Cache-Control"), "public, max-age=31536000, immutable");
   assert.deepEqual(rule(VERSIONED).has, [{ type: "query", key: "v" }], "only an address that carries a ?v= version is cached for a year");
   const known = new Set(["/sw.js", "/font/(.*)", "/(image|skill)/(.*)", VERSIONED, PUBLIC]);
@@ -102,7 +117,7 @@ test("admin scripts and styles are kept but always revalidated; the page and the
 test("the admin page preloads every module the app imports, so they load side by side", () => {
   const preloaded = new Set([...html.matchAll(/<link rel="modulepreload" href="\/admin\/([a-z]+)\.js">/g)].map((m) => m[1]));
   const imported = new Set();
-  for (const [name, code] of Object.entries(files)) for (const m of code.matchAll(/from "\.\/([a-z]+)\.js"/g)) imported.add(m[1]);
+  for (const code of Object.values(files)) for (const m of code.matchAll(/from "\.\/([a-z]+)\.js"/g)) imported.add(m[1]);
   for (const name of imported) assert.ok(preloaded.has(name), `${name}.js is imported but not preloaded`);
   for (const name of preloaded) assert.ok(read(`public/admin/${name}.js`), `${name}.js is preloaded but missing`);
 });

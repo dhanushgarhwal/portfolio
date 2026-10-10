@@ -61,5 +61,17 @@
     { "id": "vercel", "name": "Vercel", "color": "#c1c5ce", "art": { "kind": "sprite", "icon": "vercel" }, "visible": true },
     { "id": "cs50x", "name": "CS50x", "color": "#a51c30", "art": { "kind": "text", "letter": "50X" }, "visible": true },
     { "id": "cs50p", "name": "CS50P", "color": "#a51c30", "art": { "kind": "text", "letter": "50P" }, "visible": true }
-  ]
+  ],
+  "journey": {
+    "enabled": true,
+    "title": "journey",
+    "subtitle": "the road so far",
+    "direction": "latest-top",
+    "startLabel": "the start",
+    "endLabel": "i am here",
+    "seed": 20261009,
+    "path": {"spacing": 340, "amplitude": 0.62, "curviness": 0.55, "jitter": 0.35, "width": 46},
+    "highlight": {"breathing": true, "speed": 0.5, "color": "#c1c5ce"},
+    "entries": []
+  }
 }

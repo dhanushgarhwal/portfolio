@@ -1,7 +1,7 @@
 // Editor building blocks shared by Texts, Buttons, Images, Projects and Stack. Built on ui.js; DOM calls only (no markup strings).
 import { h, icon, iconButton, input, toast, toggle, confirmDialog, chip, draft as pending, hold, isHeld } from "./ui.js";
 import { store, edit, errorsFor, discardAll, fileList, srcOf, addFile, settled, check, reorder } from "./draft.js";
-import { safeName, EMAIL, webProblem } from "./logic.js";
+import { safeName, EMAIL, webProblem, listAt, clampTo } from "./logic.js";
 import { processImage, processSvg, measure, MediaError } from "./media.js";
 
 /** Calls the registered refresh functions whenever the draft changes (next frame), until stop(). */
@@ -172,7 +172,7 @@ export function draftBar() {
 }
 
 /** Picture chooser: thumbnail, a list of the repo's pictures, and an upload that converts the file first. */
-export function imagePicker({ label, get, set, orig, accept = "image", path, lv, required = true, warn = null }) {
+export function imagePicker({ label, get, set, orig, accept = "image", path, lv, required = true, warn = null, clearable = false }) {
   const wantSvg = accept !== "image";   // "image" = pictures only, "any" = pictures and SVG icons
   const wantRaster = accept !== "svg";
   const fits = (p) => (p.endsWith(".svg") ? wantSvg : wantRaster);
@@ -183,6 +183,8 @@ export function imagePicker({ label, get, set, orig, accept = "image", path, lv,
   const up = h("button", { class: "btn ibtn", type: "button", "aria-label": "Upload", onclick: () => file.click() }, icon("upload"));
   const reset = iconButton("undo", "Reset", () => set(orig()));
   reset.classList.add("rst");
+  const clear = iconButton("close", "Remove picture", () => set("")); // an optional picture can be taken away again
+  clear.hidden = true;
 
   file.addEventListener("change", async () => {
     const f = file.files[0];
@@ -203,17 +205,18 @@ export function imagePicker({ label, get, set, orig, accept = "image", path, lv,
   });
 
   const missing = () => required && !get();
-  const el = h("div", { class: "fe" }, h("div", { class: "fld" }, h("label", { for: sel.id, class: required ? "req" : null }, label), h("div", { class: "pk" }, thumb, blank, sel, up, reset)), file);
+  const el = h("div", { class: "fe" }, h("div", { class: "fld" }, h("label", { for: sel.id, class: required ? "req" : null }, label), h("div", { class: "pk" }, thumb, blank, sel, up, ...(clearable ? [clear] : []), reset)), file);
   lv.add(() => {
     const value = get();
     const opts = fileList().filter((f) => fits(f.path)).map((f) => f.path);
     if (value && !opts.includes(value)) opts.unshift(value);
     const key = opts.join("\n");
     if (sel.dataset.key !== key) { sel.replaceChildren(h("option", { value: "", disabled: true, hidden: true }, "Choose image"), ...opts.map((p) => h("option", { value: p }, p.split("/").slice(2).join("/") || p))); sel.dataset.key = key; }
-    sel.value = value;
+    sel.value = value || "";
     thumb.hidden = !value; blank.hidden = Boolean(value);
     if (value) thumb.src = srcOf(value);
     reset.hidden = orig() === undefined || get() === orig();
+    clear.hidden = !value;
     const red = (Boolean(value) && serverSays(path)) || (tried(lv) && missing()); // a picture that was simply not chosen yet stays calm until Done
     flag(sel, red);
     sel.classList.toggle("warn", Boolean(value && warn && !red && warn())); // yellow = only a suggestion, red wins
@@ -224,6 +227,37 @@ export function imagePicker({ label, get, set, orig, accept = "image", path, lv,
 }
 export { measure };
 
+/** Number with a slider and a typed box (both always agree). range = [min, max, whole] from JOURNEY.ranges; a typed value outside it turns red and is never written to the draft. */
+export function slider({ label, get, orig, set, range, lv, path, disabled = () => false }) {
+  const [min, max, whole] = range;
+  const step = whole ? 1 : 0.01;
+  const uid = `n-${Math.random().toString(36).slice(2, 8)}`;
+  const rng = h("input", { type: "range", class: "rng", id: uid, min, max, step, "aria-label": label });
+  const num = h("input", { type: "number", class: "inp num", min, max, step, inputmode: whole ? "numeric" : "decimal", "aria-label": `${label} value` });
+  const out = () => num.value !== "" && Number.isFinite(+num.value) && +num.value >= min && +num.value <= max;
+  rng.addEventListener("input", () => { num.value = rng.value; flag(num, false); set(clampTo(+rng.value, range)); });
+  num.addEventListener("input", () => {
+    flag(num, !out());
+    if (out()) { rng.value = num.value; set(clampTo(+num.value, range)); }
+  });
+  num.addEventListener("change", () => { // leaving the box: a wrong value snaps back to what the draft holds
+    if (!out()) { num.value = get(); rng.value = get(); flag(num, false); }
+  });
+  const reset = iconButton("undo", "Reset", () => { set(orig()); });
+  reset.classList.add("rst");
+  const el = h("div", { class: "fe sl" }, h("div", { class: "fld" }, h("label", { for: uid }, label), h("div", { class: "slr" }, rng, num)), reset);
+  lv.add(() => {
+    const v = get();
+    if (document.activeElement !== num && +num.value !== v) num.value = v;
+    if (+rng.value !== v) rng.value = v;
+    rng.disabled = num.disabled = disabled();
+    reset.hidden = orig() === undefined || get() === orig();
+    if (document.activeElement !== num) flag(num, serverSays(path));
+  });
+  enroll(lv, { el, focus: () => num.focus({ preventScroll: true }), bad: () => !out() || serverSays(path), path });
+  return el;
+}
+
 /** Modal editor for one item (clicking outside it does nothing) of a list (projects, buttons, stack).
  *  Edits go into the draft as you type (so the page behind updates), but nothing is final until Done:
  *  Cancel, Esc and the close button put the item back as it was (a new item is removed again).
@@ -231,12 +265,13 @@ export { measure };
 export function editorDialog({ title, build, collection, id, isNew = false, prefix, onReset, onClose }) {
   const lv = live();
   const form = lv.form = { fields: [], tried: false };
-  const snap = isNew ? null : structuredClone(store.get().content[collection].find((x) => x.id === id));
+  const listOf = () => listAt(store.get().content, collection) ?? [];
+  const snap = isNew ? null : structuredClone(listOf().find((x) => x.id === id));
   if (isNew) pendingIds.add(id);
   const release = hold(); // header counters stay put until this dialog is closed
   let finished = false;
   const rollback = () => edit((c) => {
-    const list = c[collection];
+    const list = listAt(c, collection);
     const at = list.findIndex((x) => x.id === id);
     if (at < 0) return;
     if (isNew) list.splice(at, 1); else list[at] = structuredClone(snap);
@@ -280,7 +315,7 @@ export function editorDialog({ title, build, collection, id, isNew = false, pref
     } finally { checking = false; }
   };
   const done = h("button", { class: "btn", type: "button", onclick: attempt }, "Done");
-  lv.add(() => { done.disabled = !store.get().content[collection].some((x) => x.id === id); });
+  lv.add(() => { done.disabled = !listOf().some((x) => x.id === id); });
   const body = h("div", { class: "ed-form" }, ...build(lv));
   dlg.append(
     h("header", { class: "ed-head" }, h("h2", { id: "edT" }, title), iconButton("close", "Cancel", () => finish(false))),

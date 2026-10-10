@@ -8,6 +8,8 @@ import { handleAdmin, makeGithub } from "../../lib/admin.js";
 import { makeRepo } from "../../lib/repo.js";
 import { iconsIn } from "../../scripts/render.mjs";
 
+const env = (name) => process.env[name]?.trim() || null;
+
 // Icon names come from the template that ships with this deploy (vercel.json includeFiles).
 let iconCache;
 let templateCache;
@@ -20,8 +22,6 @@ function repo() {
   if (!token || !/^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/.test(name ?? "") || !/^[A-Za-z0-9_./-]{1,100}$/.test(branch)) return null;
   return makeRepo({ token, repo: name, branch });
 }
-
-const env = (name) => process.env[name]?.trim() || null;
 
 function deps() {
   const clientId = env("GITHUB_CLIENT_ID"), clientSecret = env("GITHUB_CLIENT_SECRET");

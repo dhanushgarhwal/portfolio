@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="/state.css?v=5b598cf5c0">
 <link rel="stylesheet" href="/style.css?v=f7605a8897">
 <link rel="stylesheet" href="/feedback.css?v=140b4e8754">
+<link rel="stylesheet" href="/journey.css?v=6227caccbb">
 </head>
 <body data-email="dhanushgarhwal@gmail.com" data-discord="1516421354713513995">
 <div class="bg"></div>
@@ -67,6 +68,7 @@
   <symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></g></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></g></symbol>
   <symbol id="i-youtube" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17a24.1 24.1 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.6 49.6 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.1 24.1 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.6 49.6 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></g></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/></g></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></g></symbol>
 </svg>
 
@@ -80,6 +82,7 @@
   <li><a role="button" data-go="home" aria-label="Home" data-tip="Home"><svg aria-hidden="true"><use href="#i-home"/></svg></a></li>
   <li><a role="button" data-go="projects" aria-label="Projects" data-tip="Projects"><svg aria-hidden="true"><use href="#i-work"/></svg></a></li>
   <li><a role="button" data-go="skills" aria-label="Skills" data-tip="Skills"><svg aria-hidden="true"><use href="#i-code"/></svg></a></li>
+  <li><a role="button" data-go="journey" aria-label="Journey" data-tip="Journey"><svg aria-hidden="true"><use href="#i-route"/></svg></a></li>
   <li><a role="button" data-go="feedback" aria-label="Feedback" data-tip="Feedback"><svg aria-hidden="true"><use href="#i-star"/></svg></a></li>
 </ul></nav>
 <div class="tip" id="tip" aria-hidden="true"><span class="tip-a"></span><span class="tip-b"></span><span class="tip-r"></span></div>
@@ -154,6 +157,21 @@
       <article class="card tile" style="--c:#a51c30" aria-label="CS50P"><i class="hl"></i><span class="art"><b class="ltr keep">50P</b></span><h3>CS50P</h3></article>
       </div>
     </div>
+  </main>
+
+  <!-- journey: public/journey.js starts it the first time this page opens (data-src is its address); until then, and without scripts, the list below is the page -->
+  <main class="wrap view" data-page="journey" data-src="/journey.js?v=6f6e4842dc">
+    <header class="hero in" style="--i:0">
+      <p class="hey"><img class="fav" src="/image/favicon-sm.png" alt="" width="14" height="14">the road so far</p>
+      <h1>journey</h1>
+    </header>
+
+    <div class="jy-stage in" id="jyStage" style="--i:1" role="region" aria-label="journey">
+      <ol class="jy-list" id="jyList">
+      <li><p class="jy-empty">nothing here yet</p></li>
+      </ol>
+    </div>
+    <script type="application/json" id="journey-data">{"enabled":true,"title":"journey","subtitle":"the road so far","direction":"latest-top","startLabel":"the start","endLabel":"i am here","seed":20261009,"path":{"spacing":340,"amplitude":0.62,"curviness":0.55,"jitter":0.35,"width":46},"highlight":{"breathing":true,"speed":0.5,"color":"#c1c5ce"},"entries":[],"latest":null,"ranges":{"seed":[0,2147483647,true],"path":{"spacing":[160,800,true],"amplitude":[0.2,0.9,false],"curviness":[0,1,false],"jitter":[0,1,false],"width":[20,120,true]},"highlight":{"speed":[0.1,1,false]}}}</script>
   </main>
 
   <!-- feedback: anonymous stars + message; public/feedback.js starts it the first time this page opens -->
@@ -231,7 +249,7 @@
   </div>
 </div>
 <script src="/fonts.js?v=4723837732" defer></script>
-<script src="/script.js?v=d17601e6be" defer></script>
+<script src="/script.js?v=ea8a04beb4" defer></script>
 <script src="/feedback.js?v=6df45b071b" defer></script>
 </body>
 </html>

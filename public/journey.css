@@ -1,0 +1,79 @@
+/* Journey page. Built from the site's own pieces (style.css: hero, card, chip; state.css: --panel, --box). Sections: 1 stage, 2 entries, 3 phones, 4 world, 5 focus */
+
+/* ---- 1. stage: the page's working area. It scrolls with wheel, touch and keys, but never shows a scrollbar ---- */
+.jy-stage{position:relative;max-height:min(540px,calc(100dvh - 232px));overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:none;-ms-overflow-style:none;border-radius:var(--r)}
+.jy-stage::-webkit-scrollbar{display:none;width:0;height:0}
+.jy-list{list-style:none;display:grid;gap:12px;padding:1px 1px 12px}
+
+/* ---- 2. entries ---- */
+.jy-item{display:grid;gap:6px}
+.jy-item h2{font-size:15px;font-weight:600;letter-spacing:-.01em;line-height:1.3;color:var(--fg)}
+.jy-meta{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:400;letter-spacing:.03em;color:rgba(193,197,206,.55)}
+.jy-meta time{color:rgba(193,197,206,.8)}
+.jy-meta span::before{content:"";display:inline-block;width:3px;height:3px;margin:0 8px 2px 0;border-radius:50%;background:currentColor;vertical-align:middle}
+.jy-img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--r);margin-top:4px;box-shadow:var(--edge)}
+.jy-item.is-latest .hl{background:linear-gradient(to right,transparent,rgba(241,243,247,.5),transparent)}
+.jy-item.is-latest h2{color:#f1f3f7}
+.jy-empty{padding:16px;font-size:12.5px;color:rgba(193,197,206,.55)}
+
+/* ---- 3. phones ---- */
+@media(max-width:640px){.jy-stage{max-height:calc(100dvh - 200px)}}
+
+/* ---- 4. the world: the page switches to it the moment it opens ([data-world], set by script.js, before journey.js has even loaded), so the plain list never
+   shows for a moment; without scripts (or if journey.js cannot start) the attribute is absent and the list above is the whole page ---- */
+.view[data-page=journey][data-world]{position:fixed;inset:0;align-self:stretch;justify-self:stretch;height:auto;display:block;width:auto;max-width:none;padding:0;touch-action:none}
+[data-page=journey][data-world] .hero{position:absolute;left:0;right:0;top:max(18px,env(safe-area-inset-top));z-index:3;justify-items:center;text-align:center;pointer-events:none}
+[data-page=journey][data-world] .hero h1{font-size:clamp(22px,4vw,30px)}
+/* the dark vignette: one overlay, the same fade (same width, same strength) on the top, bottom, left and right edges */
+[data-page=journey][data-world]{--jy-fade:130px}
+[data-page=journey][data-world]::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:
+  linear-gradient(#000 12%,transparent) top/100% var(--jy-fade) no-repeat,
+  linear-gradient(transparent,#000 88%) bottom/100% var(--jy-fade) no-repeat,
+  linear-gradient(90deg,#000 12%,transparent) left/var(--jy-fade) 100% no-repeat,
+  linear-gradient(270deg,#000 12%,transparent) right/var(--jy-fade) 100% no-repeat}
+.jy-stage.is-ready{position:absolute;inset:0;z-index:1;max-height:none;overflow:hidden;border-radius:0;touch-action:none;cursor:grab;outline:none;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.jy-stage.drag{cursor:grabbing}
+.jy-canvas{position:absolute;left:0;top:0;display:block;will-change:transform}
+.jy-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.jy-card{position:absolute;left:0;top:0;translate:0 -50%;width:210px;padding:10px 11px;display:grid;gap:6px;pointer-events:auto;will-change:transform;
+  transition:scale .25s var(--ease),box-shadow .25s var(--ease),filter .25s}
+.jy-card[hidden]{display:none}
+.jy-card[data-side=left]{transform-origin:100% 50%}.jy-card[data-side=right]{transform-origin:0 50%}
+.jy-card:hover,.jy-card.is-front{z-index:3;scale:1.04}
+.jy-card p{font-size:11.5px;line-height:1.45}
+.jy-card h2{font-size:13px;font-weight:600;letter-spacing:-.01em;line-height:1.3;color:var(--fg)}
+.jy-card p{overflow-wrap:anywhere}
+.jy-tags{display:flex;flex-wrap:wrap;gap:6px}
+.jy-tags .chip{cursor:default}
+.jy-tags .chip[hidden]{display:none}
+.jy-card.is-latest{box-shadow:var(--box),0 0 28px -6px rgba(193,197,206,.28)}
+.jy-card.is-latest{padding:13px 14px;gap:7px}
+.jy-card.is-latest h2{color:#f1f3f7;font-size:14.5px}
+.jy-card.is-latest p{font-size:12.5px}
+.jy-flag{color:#f1f3f7;letter-spacing:.04em}
+.jy-card .foot[hidden],.jy-card .jy-img[hidden],.jy-card p[hidden]{display:none}
+.jy-nothing{position:absolute;left:0;right:0;top:0;text-align:center;font-size:12.5px;color:rgba(193,197,206,.55)}
+.jy-rail{position:absolute;right:max(14px,env(safe-area-inset-right));top:50%;margin-top:-30px;width:2px;border-radius:2px;background:rgba(193,197,206,.14);z-index:3;pointer-events:none}
+.jy-rail i{position:absolute;left:-1px;top:0;width:4px;height:8px;border-radius:2px;background:var(--fg);box-shadow:0 0 8px rgba(193,197,206,.45);will-change:transform}
+.jy-count{position:absolute;left:0;right:0;top:calc(max(18px,env(safe-area-inset-top)) + 74px);z-index:3;text-align:center;font-size:11px;letter-spacing:.06em;color:rgba(193,197,206,.45);font-variant-numeric:tabular-nums;pointer-events:none}
+/* the list stays for screen readers, search engines and the Tab key; it is just not painted */
+.jy-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.jy-sr:focus-within{clip-path:none}
+[data-page=journey][data-world] .jy-stage:not(.is-ready) .jy-list{visibility:hidden} /* the few moments before the world is drawn: nothing but the title, never the list */
+/* ---- 5. focus: a dark vignette over the road and cards, lit only around the milestone being read ---- */
+.jy-spot{position:absolute;left:0;top:0;display:block;pointer-events:none}
+@media(max-width:640px){
+  [data-page=journey][data-world]{--jy-fade:64px} /* phones: cards sit close to the edges, so the side fade is narrower */
+  .jy-card{padding:9px 10px;gap:5px}.jy-card h2{font-size:12.5px}
+  .jy-rail{right:8px}
+}
+/* wide screens: the title block sits to the left of the road, a little right of the menu: 440px left of the middle, never closer than 84px to the edge.
+   A card above or below a milestone is at most 210px wide and centred on the road, so it clears the title block (~135px wide) from 1100px up. */
+@media(min-width:1100px){
+  [data-page=journey][data-world]{--jy-x:max(84px,calc(50% - 440px))}
+  [data-page=journey][data-world] .hero{left:var(--jy-x);right:auto;top:96px;justify-items:start;text-align:left}
+  .jy-count{left:var(--jy-x);right:auto;top:178px;text-align:left}
+}
+@media(prefers-reduced-motion:reduce){.jy-card{transition:none}}

@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="/state.css">
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/feedback.css">
+{{{journeyHead}}}
 </head>
 <body>
 <div class="bg"></div>
@@ -67,6 +68,7 @@
   <symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></g></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></g></symbol>
   <symbol id="i-youtube" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17a24.1 24.1 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.6 49.6 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.1 24.1 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.6 49.6 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></g></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/></g></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></g></symbol>
 </svg>
 
@@ -80,6 +82,7 @@
   <li><a role="button" data-go="home" aria-label="Home" data-tip="Home"><svg aria-hidden="true"><use href="#i-home"/></svg></a></li>
   <li><a role="button" data-go="projects" aria-label="Projects" data-tip="Projects"><svg aria-hidden="true"><use href="#i-work"/></svg></a></li>
   <li><a role="button" data-go="skills" aria-label="Skills" data-tip="Skills"><svg aria-hidden="true"><use href="#i-code"/></svg></a></li>
+{{{journeyNav}}}
   <li><a role="button" data-go="feedback" aria-label="Feedback" data-tip="Feedback"><svg aria-hidden="true"><use href="#i-star"/></svg></a></li>
 </ul></nav>
 <div class="tip" id="tip" aria-hidden="true"><span class="tip-a"></span><span class="tip-b"></span><span class="tip-r"></span></div>
@@ -131,6 +134,7 @@
     </div>
   </main>
 
+{{{journeyPage}}}
   <!-- feedback: anonymous stars + message; public/feedback.js starts it the first time this page opens -->
   <main class="wrap view" data-page="feedback">
     <header class="hero in" style="--i:0">

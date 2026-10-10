@@ -15,7 +15,7 @@ const PAGES = [
 
 // The page loads its own styles and scripts as /file?v=<hash of the file>. The address changes only when the file does, so the browser can keep
 // each version for a year without asking (vercel.json: immutable for these addresses) and a deploy still shows the new files at once.
-const ASSETS = ["state.css", "style.css", "feedback.css", "fonts.js", "script.js", "feedback.js"];
+const ASSETS = ["state.css", "style.css", "feedback.css", "journey.css", "fonts.js", "script.js", "feedback.js", "journey.js"];
 const ASSET_URL = new RegExp(`(href|src)="/(${ASSETS.map((a) => a.replace(".", "\\.")).join("|")})"`, "g");
 const stamp = (html) => html.replace(ASSET_URL, (_, attr, file) => {
   const hash = createHash("sha256").update(readFileSync(join(root, "public", file))).digest("hex").slice(0, 10);

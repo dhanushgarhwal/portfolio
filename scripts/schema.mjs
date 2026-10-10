@@ -2,19 +2,34 @@
 // that passes here is exactly what the build accepts. No dependencies, no file or network access:
 // everything the rules need from outside (icon names, which files exist) is passed in.
 
+import { journeyDateKey, sortJourney } from "../public/admin/logic.js";
+
+// 1 = pages, buttons, projects, stack. The optional "journey" block was added without a version bump on purpose:
+// it is optional, so every content.json written for version 1 stays valid and a pushed draft still matches.
 export const SCHEMA_VERSION = 1;
 
 export const LIMITS = {
   text: 80, about: 400, label: 24, url: 300, name: 40, description: 300, handle: 40,
   buttons: 12, projects: 30, stack: 60, bytes: 200_000,
+  journeyEntries: 60, journeyTitle: 60, journeyText: 280, journeyTag: 20,
 };
+
+/** Every number the Journey page accepts: [min, max, whole numbers only]. One table, read by the build, the admin editor and the page itself. */
+export const JOURNEY_RANGES = {
+  seed: [0, 2_147_483_647, true],
+  path: {
+    spacing: [160, 800, true], amplitude: [0.2, 0.9, false], curviness: [0, 1, false], jitter: [0, 1, false], width: [20, 120, true],
+  },
+  highlight: { speed: [0.1, 1, false] },
+};
+export const JOURNEY_DIRECTIONS = ["latest-top", "latest-bottom"];
+export const JOURNEY_SIDES = ["auto", "left", "right"];
 
 const ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const EMAIL = /^[^\s@<>"]{1,64}@[A-Za-z0-9.-]{1,200}\.[A-Za-z]{2,24}$/;
 const IMAGE_PATH = /^\/(image|skill)\/(?:[A-Za-z0-9_-][A-Za-z0-9._-]*\/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\.(png|webp|jpe?g|gif|avif|svg)$/;
 const CDN_HOST = "cdn.jsdelivr.net";
-// eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
 const KINDS = ["image", "sprite", "text"];
 
@@ -74,6 +89,21 @@ export function parseAbout(source) {
   return parts;
 }
 
+
+// The date key and the display order are shared with the admin page (one implementation, public/admin/logic.js), so both always agree.
+export { journeyDateKey, sortJourney };
+
+/** The newest visible entry: the one the page opens on. Same date -> the one later in the list. Undefined when nothing is visible. */
+export function latestJourney(entries) {
+  let best, bestKey = "";
+  for (const e of entries) {
+    if (e?.visible === false) continue;
+    const k = journeyDateKey(e?.date);
+    if (k && k >= bestKey) { best = e; bestKey = k; }
+  }
+  return best;
+}
+
 /**
  * @param {unknown} content parsed content.json
  * @param {{ icons: string[], fileExists: (publicPath: string) => boolean }} env
@@ -117,7 +147,7 @@ export function validateContent(content, env) {
 
   if (!isObj(content)) return { errors: ["content.json must be an object"], warnings };
   if (JSON.stringify(content).length > LIMITS.bytes) err("content.json", `is bigger than ${LIMITS.bytes} bytes`);
-  if (!keys(content, "content", ["schemaVersion", "site", "images", "texts", "buttons", "projects", "stack"])) return { errors, warnings };
+  if (!keys(content, "content", ["schemaVersion", "site", "images", "texts", "buttons", "projects", "stack"], ["journey"])) return { errors, warnings };
   if (content.schemaVersion !== SCHEMA_VERSION) err("schemaVersion", `must be ${SCHEMA_VERSION}`);
 
   // site
@@ -245,6 +275,58 @@ export function validateContent(content, env) {
         letter(a.letter);
       }
     });
+  }
+
+  // journey (optional: no key = no Journey page)
+  if (content.journey !== undefined) {
+    const j = content.journey;
+    // "clouds" was an earlier experiment: a leftover block in an old content.json is accepted and ignored, never drawn
+    if (keys(j, "journey", ["enabled", "title", "subtitle", "direction", "startLabel", "endLabel", "seed", "path", "highlight", "entries"], ["clouds"])) {
+      const num = (v, path, [min, max, whole]) => {
+        if (typeof v !== "number" || !Number.isFinite(v)) return err(path, "must be a number");
+        if (whole && !Number.isInteger(v)) return err(path, "must be a whole number");
+        if (v < min || v > max) err(path, `must be from ${min} to ${max}`);
+      };
+      const R = JOURNEY_RANGES;
+      bool(j.enabled, "journey.enabled");
+      str(j.title, "journey.title", LIMITS.text);
+      str(j.subtitle, "journey.subtitle", 40);
+      if (!JOURNEY_DIRECTIONS.includes(j.direction)) err("journey.direction", `must be one of ${JOURNEY_DIRECTIONS.join(", ")}`);
+      str(j.startLabel, "journey.startLabel", LIMITS.label);
+      str(j.endLabel, "journey.endLabel", LIMITS.label);
+      num(j.seed, "journey.seed", R.seed);
+      if (keys(j.path, "journey.path", Object.keys(R.path))) for (const k of Object.keys(R.path)) num(j.path[k], `journey.path.${k}`, R.path[k]);
+      if (keys(j.highlight, "journey.highlight", ["breathing", "speed", "color"])) {
+        bool(j.highlight.breathing, "journey.highlight.breathing");
+        num(j.highlight.speed, "journey.highlight.speed", R.highlight.speed);
+        if (typeof j.highlight.color !== "string" || !HEX.test(j.highlight.color)) err("journey.highlight.color", "must look like #a1b2c3");
+      }
+      if (!Array.isArray(j.entries)) err("journey.entries", "must be a list");
+      else {
+        if (j.entries.length > LIMITS.journeyEntries) err("journey.entries", `at most ${LIMITS.journeyEntries} entries`);
+        const seen = new Set();
+        j.entries.forEach((x, i) => {
+          const p = `journey.entries[${i}]`;
+          if (!keys(x, p, ["id", "date", "title", "text", "tag", "icon", "visible", "pinned", "side"], ["image", "link"])) return;
+          id(x.id, `${p}.id`, seen);
+          if (typeof x.date !== "string" || !journeyDateKey(x.date)) err(`${p}.date`, "must be a real date like 2024, 2024-05 or 2024-05-17");
+          str(x.title, `${p}.title`, LIMITS.journeyTitle);
+          if (str(x.text, `${p}.text`, LIMITS.journeyText)) {
+            try { parseAbout(x.text); } catch (e) { err(`${p}.text`, e.message); }
+          }
+          str(x.tag, `${p}.tag`, LIMITS.journeyTag);
+          icon(x.icon, `${p}.icon`);
+          bool(x.visible, `${p}.visible`);
+          bool(x.pinned, `${p}.pinned`);
+          if (!JOURNEY_SIDES.includes(x.side)) err(`${p}.side`, `must be one of ${JOURNEY_SIDES.join(", ")}`);
+          if (x.image !== undefined) image(x.image, `${p}.image`);
+          if (x.link !== undefined && keys(x.link, `${p}.link`, ["label", "url"])) {
+            str(x.link.label, `${p}.link.label`, LIMITS.label);
+            url(x.link.url, `${p}.link.url`);
+          }
+        });
+      }
+    }
   }
 
   return { errors, warnings };

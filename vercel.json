@@ -36,7 +36,7 @@
       ]
     },
     {
-      "source": "/(state\\.css|style\\.css|feedback\\.css|fonts\\.js|script\\.js|feedback\\.js)",
+      "source": "/(state\\.css|style\\.css|feedback\\.css|journey\\.css|fonts\\.js|script\\.js|feedback\\.js|journey\\.js)",
       "has": [
         {
           "type": "query",

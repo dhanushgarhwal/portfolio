@@ -1,7 +1,7 @@
 // The draft engine. Holds the working copy of content.json and the image changes. Nothing leaves the browser until the Push screen sends it (push.js).
 // The draft lives in memory and in IndexedDB, so a refresh or an expired session never loses edits.
 import { api, ApiError, confirmDialog, createStore, draft as pending, toast } from "./ui.js";
-import { changesOf, refsTo, rewriteRefs, errorsAt, moveItem, LIMITS } from "./logic.js";
+import { changesOf, refsTo, rewriteRefs, errorsAt, moveItem, listAt, LIMITS } from "./logic.js";
 
 const DB = "admin-draft", KEY = "draft";
 
@@ -153,14 +153,17 @@ export function resetTexts(paths) { // paths like ["texts.home.title"]; resets t
     }
   });
 }
+/** Puts one item of a list back as it was loaded (area is a list path: "projects", "journey.entries"). An item the repo does not have is removed. */
 export function resetItem(area, id) {
   const { original } = store.get();
-  const orig = original[area].find((x) => x.id === id);
+  const orig = listAt(original, area)?.find((x) => x.id === id);
   edit((c) => {
-    const i = c[area].findIndex((x) => x.id === id);
-    if (orig && i >= 0) c[area][i] = structuredClone(orig);
-    else if (orig) c[area].push(structuredClone(orig));
-    else if (i >= 0) c[area].splice(i, 1);
+    const list = listAt(c, area);
+    if (!list) return;
+    const i = list.findIndex((x) => x.id === id);
+    if (orig && i >= 0) list[i] = structuredClone(orig);
+    else if (orig) list.push(structuredClone(orig));
+    else if (i >= 0) list.splice(i, 1);
   });
 }
 export async function discardAll() {
