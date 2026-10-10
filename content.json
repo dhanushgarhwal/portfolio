@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "site": {
     "url": "https://dhanushgarhwal.vercel.app",
-    "title": "developer",
+    "title": "Dhanush Garhwal | Portfolio",
     "ogTitle": "Dhanush Garhwal | Portfolio",
-    "ogImageAlt": "Dhanush Garhwal - Portfolio",
+    "ogImageAlt": "Dhanush Garhwal | Portfolio",
     "email": "dhanushgarhwal@gmail.com",
     "discordId": "1516421354713513995"
   },
@@ -141,7 +141,7 @@
     {
       "id": "python",
       "name": "Python",
-      "color": "#3776ab",
+      "color": "#3975a5",
       "art": {
         "kind": "image",
         "letter": "PY",
@@ -209,30 +209,10 @@
     {
       "id": "vercel",
       "name": "Vercel",
-      "color": "#c1c5ce",
+      "color": "#225390",
       "art": {
         "kind": "sprite",
         "icon": "vercel"
-      },
-      "visible": true
-    },
-    {
-      "id": "cs50x",
-      "name": "CS50x",
-      "color": "#a51c30",
-      "art": {
-        "kind": "text",
-        "letter": "50X"
-      },
-      "visible": true
-    },
-    {
-      "id": "cs50p",
-      "name": "CS50P",
-      "color": "#a51c30",
-      "art": {
-        "kind": "text",
-        "letter": "50P"
       },
       "visible": true
     }
